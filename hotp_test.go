@@ -7,7 +7,7 @@ import "testing"
 
 func TestHOTPGenerate(t *testing.T) {
 	key := []byte("12345678901234567890")
-	otp := NewHotpDigits(key, 6)
+	otp := NewHotpDigits(key, defaultDigits)
 	expected := []string{
 		"755224",
 		"287082",
@@ -30,7 +30,7 @@ func TestHOTPGenerate(t *testing.T) {
 
 func TestHOTPVerify(t *testing.T) {
 	key := []byte("12345678901234567890")
-	otp := NewHotpDigits(key, 6)
+	otp := NewHotpDigits(key, defaultDigits)
 
 	expectedTrue := otp.Verify("338314", 4)
 
@@ -43,5 +43,22 @@ func TestHOTPVerify(t *testing.T) {
 	if expectedFalse == true {
 		t.Errorf("Falsely validated code '543321' at couner 12 as correct")
 	}
+}
 
+func TestHotpUrlGenerator(t *testing.T) {
+	hotp := NewHotpDigits([]byte("key"), 8)
+	url := hotp.ProvisioningUrlWithCounter("Example", "test@example.com", 342)
+
+	expected := "otpauth://hotp/test@example.com:Example?counter=342&digits=8&issuer=test%40example.com&secret=DDINI"
+	if url != expected {
+		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
+	}
+
+	hotp = NewDefaultHotp([]byte("key"))
+	url = hotp.ProvisioningUrlWithCounter("Example", "test@example.com", 2342)
+
+	expected = "otpauth://hotp/test@example.com:Example?counter=2342&issuer=test%40example.com&secret=DDINI"
+	if url != expected {
+		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
+	}
 }

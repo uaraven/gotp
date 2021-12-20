@@ -8,12 +8,14 @@ import (
 	"crypto/sha1"
 	"crypto/subtle"
 	"fmt"
+	"net/url"
 )
 
 // Hotp is an implementation of RFC4226, HMAC-based one-time password algorithm
 // Currently only HMAC-SHA1 is supported
 type Hotp struct {
-	Otp
+	OTP
+	secret           []byte // unpadded secret key
 	key              []byte
 	digits           int
 	truncationOffset int
@@ -30,7 +32,7 @@ func hmac_sha1(key, data []byte) []byte {
 //
 // key is the shared secret key
 func NewDefaultHotp(key []byte) *Hotp {
-	return NewHotp(key, 6, -1)
+	return NewHotp(key, defaultDigits, -1)
 }
 
 // NewHotpDigits creates an instance of Hotp with given number of digits for the OTP
@@ -53,11 +55,13 @@ func NewHotpDigits(key []byte, digits int) *Hotp {
 // If truncationOffset value is outside of that range, then dynamic value will be used.
 // By default value of truncationOffset is -1 and it is recommended to keep it this way
 func NewHotp(key []byte, digits int, truncationOffset int) *Hotp {
+	secret := key
 	key = adjustForSha1(key)
 	if digits > len(powers) {
 		panic(fmt.Errorf("maximum supported number of digits is 10"))
 	}
 	return &Hotp{
+		secret:           secret,
 		key:              key,
 		digits:           digits,
 		truncationOffset: truncationOffset,
@@ -106,4 +110,25 @@ func (h *Hotp) Verify(otp string, counter int64) bool {
 	}
 	expected := h.GenerateOTP(counter)
 	return subtle.ConstantTimeCompare([]byte(expected), []byte(otp)) == 1
+}
+
+// Generates provisioning URL with the configured parameters as described in https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+//
+// This function always use counter value of 0, which probably doesn't make much sense.
+// It is recommended to use ProvisioningUrlWithCounter instead
+//
+// Note that truncationOffset cannot be added to provisioning URL
+func (h *Hotp) ProvisioningUrl(accountName string, issuer string) string {
+	return h.ProvisioningUrlWithCounter(accountName, issuer, 0)
+}
+
+// Generates provisioning URL with the configured parameters as described in https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+//
+// counter is the counter value to be included in the URL
+//
+// Note that truncationOffset cannot be added to provisioning URL
+func (h *Hotp) ProvisioningUrlWithCounter(accountName string, issuer string, counter int64) string {
+	vals := make(url.Values)
+	vals.Add("counter", fmt.Sprintf("%d", counter))
+	return generateProvisioningUrl("hotp", accountName, issuer, h.digits, h.secret, vals)
 }

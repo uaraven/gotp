@@ -13,7 +13,7 @@ Currently this library only supports HMAC-SHA1 as underlying HMAC algorithm
     import "github.com/uaraven/gotp"
     ...
 
-    hotp := NewDefaultHotp([]byte("secret key"))
+    hotp := gotp.NewDefaultHotp([]byte("secret key"))
     counter := 10
     code := hotp.GenerateOTP(counter)
 
@@ -36,7 +36,7 @@ Currently this library only supports HMAC-SHA1 as underlying HMAC algorithm
     )
     ...
 
-    totp := NewDefaultTotp([]byte("secret key"))
+    totp := gotp.NewDefaultTotp([]byte("secret key"))
     timestamp := time.Date(2021, 12, 20, 11, 28, 13, 0, time.UTC)
     code := totp.At(timestamp)
 
