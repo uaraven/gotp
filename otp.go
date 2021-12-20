@@ -13,9 +13,15 @@ import (
 
 // OTP defines common functions for the one-time passwords
 type OTP interface {
+	// GenerateOTP generates new one-time password based on counter data
 	GenerateOTP(counter int64) string
+	// Verify confirms validity of provided otp code against given counter
 	Verify(otp string, counter int64) bool
-	ProvisioningUri(label string, issuer string) string
+	// ProvisioningUri generates a provisioning URI for this OTP instance
+	//
+	// accountName identifies an account for which the URI is generated
+	// issuer identifies the entity that performs authentication
+	ProvisioningUri(accountName string, issuer string) string
 }
 
 // OTPKeyData contains data parsed from otpauth URL
