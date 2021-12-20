@@ -3,20 +3,23 @@
 package gotp
 
 import (
+	"crypto"
 	"crypto/hmac"
-	"crypto/sha1"
+	_ "crypto/sha1"
 	"crypto/subtle"
 	"fmt"
+	"hash"
 	"net/url"
 	"strconv"
 	"sync"
 )
 
 // HOTP is an implementation of RFC4226, HMAC-based one-time password algorithm
-// Currently only HMAC-SHA1 is supported
 type HOTP struct {
 	OTP
 	sync *sync.RWMutex
+	// hash is the Hash function used by HMAC
+	hash crypto.Hash
 	// Secret is the original shared secret
 	Secret []byte
 	// Key is the secret padded to the required size
@@ -29,8 +32,8 @@ type HOTP struct {
 	TruncationOffset int
 }
 
-func hmac_sha1(key, data []byte) []byte {
-	hm := hmac.New(sha1.New, key)
+func hmac_hash(hashProvider func() hash.Hash, key, data []byte) []byte {
+	hm := hmac.New(hashProvider, key)
 	hm.Write(data)
 	return hm.Sum([]byte{})
 }
@@ -52,7 +55,7 @@ func NewHOTPFromUri(uri string) (*OTPKeyData, error) {
 	}
 	label := u.Path[1:] // skip '/'
 	issuer := u.Query().Get(issuerKey)
-	digits := int64(defaultDigits)
+	digits := int64(DefaultDigits)
 	if u.Query().Has(digitsKey) {
 		digits, err = strconv.ParseInt(u.Query().Get(digitsKey), 10, 32)
 		if err != nil {
@@ -66,23 +69,30 @@ func NewHOTPFromUri(uri string) (*OTPKeyData, error) {
 			return nil, err
 		}
 	}
+	algorithm := crypto.SHA1
+	if u.Query().Has(algorithmKey) {
+		algorithm, err = algorithmFromName(u.Query().Get(algorithmKey))
+		if err != nil {
+			return nil, err
+		}
+	}
 	key, err := decodeKey(u.Query().Get(secretKey))
 	if err != nil {
 		return nil, err
 	}
 
 	return &OTPKeyData{
-		OTP:    NewHOTP(key, int(digits), counter, -1),
+		OTP:    NewHOTPHash(key, counter, int(digits), -1, algorithm),
 		Label:  label,
 		Issuer: issuer}, nil
 }
 
 // NewDefaultHOTP crates an instance of Hotp with default parameters:
-// Number of OTP digits is 6 and using dynamic truncation offset
+// Number of OTP digits is 6, SHA1 for hashing and using dynamic truncation offset
 //
 // key is the shared secret key
 func NewDefaultHOTP(key []byte, counter int64) *HOTP {
-	return NewHOTP(key, defaultDigits, counter, -1)
+	return NewHOTP(key, counter, DefaultDigits, -1)
 }
 
 // NewHOTPDigits creates an instance of Hotp with given number of digits for the OTP
@@ -91,7 +101,7 @@ func NewDefaultHOTP(key []byte, counter int64) *HOTP {
 // key is the shared secret key
 // digits is the number of digits in the resulting one-time password code
 func NewHOTPDigits(key []byte, counter int64, digits int) *HOTP {
-	return NewHOTP(key, digits, counter, -1)
+	return NewHOTP(key, counter, digits, -1)
 }
 
 // NewHOTP allows to create an instance of Hotp and set the parameters
@@ -100,18 +110,41 @@ func NewHOTPDigits(key []byte, counter int64, digits int) *HOTP {
 //
 // digits is the number of digits in the resulting one-time password code
 //
+// algorithm is the hash function to use with HMAC, crypto.SHA1 is recommended
+//
 // truncationOffset is used by truncation function that is used to extract 4-byte dynamic binary
 // code from HMAC result. The truncation offset value must be in range [0..HMAC result size in bytes).
 // If truncationOffset value is outside of that range, then dynamic value will be used.
 // By default value of truncationOffset is -1 and it is recommended to keep it this way
-func NewHOTP(key []byte, digits int, counter int64, truncationOffset int) *HOTP {
+func NewHOTP(key []byte, counter int64, digits int, truncationOffset int) *HOTP {
+	return NewHOTPHash(key, counter, digits, truncationOffset, crypto.SHA1)
+}
+
+// NewHOTPHash allows to create an instance of Hotp, set the parameters and chose hash function to be used in underlying HMAC
+//
+// key is the shared secret key
+//
+// digits is the number of digits in the resulting one-time password code
+//
+// algorithm is the hash function to use with HMAC, crypto.SHA1 is recommended
+//
+// truncationOffset is used by truncation function that is used to extract 4-byte dynamic binary
+// code from HMAC result. The truncation offset value must be in range [0..HMAC result size in bytes).
+// If truncationOffset value is outside of that range, then dynamic value will be used.
+// By default value of truncationOffset is -1 and it is recommended to keep it this way
+//
+// hash is a hash function, one of crypto.* constants. You might need to add an import for selected hash function, otherwise you might see
+// crypto: requested hash function is unavailable panic message.
+// For example, if you want to use SHA512, then use crypto.SHA512 as a parameter and add 'import _ "crypto/sha512"' statement.
+func NewHOTPHash(key []byte, counter int64, digits int, truncationOffset int, algorithm crypto.Hash) *HOTP {
 	secret := key
-	key = adjustForSha1(key)
+	key = adjustForHash(key, algorithm)
 	if digits > len(powers) {
 		panic(fmt.Errorf("maximum supported number of digits is 10"))
 	}
 	return &HOTP{
 		sync:             &sync.RWMutex{},
+		hash:             algorithm,
 		Secret:           secret,
 		Key:              key,
 		Digits:           digits,
@@ -201,24 +234,29 @@ func (h *HOTP) Verify(otp string, counter int64) bool {
 	return subtle.ConstantTimeCompare([]byte(expected), []byte(otp)) == 1
 }
 
-// Generates provisioning URL with the configured parameters as described in https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+// Generates provisioning URI with the configured parameters as described in https://github.com/google/google-authenticator/wiki/Key-Uri-Format
 //
-// This function always use counter value of 0, which probably doesn't make much sense.
-// It is recommended to use ProvisioningUrlWithCounter instead
-//
-// Note that truncationOffset cannot be added to provisioning URL
+// Limitations:
+//  - truncationOffset cannot be added to provisioning URI
+//  - Only SHA1, SHA256 and SHA512 algorithms could be added to the URI, if HOTP is configured to use any other hashing function, no algorithm will be added to the URI
+//    Note that many OTP generating applications (i.e. Google Authenticator) will ignore algorithm key and always use SHA1
+//  - Current counter value will be added to URI, use SetCounter() to update it before generating URI
 func (h *HOTP) ProvisioningUri(accountName string, issuer string) string {
 	vals := make(url.Values)
-	vals.Add("counter", fmt.Sprintf("%d", h.counter))
+	vals.Add(counterKey, fmt.Sprintf("%d", h.counter))
+	algoName, err := algorithmToName(h.hash)
+	if err != nil && h.hash != crypto.SHA1 {
+		vals.Add(algorithmKey, algoName)
+	}
 	return generateProvisioningUri(typeHotp, accountName, issuer, h.Digits, h.Secret, vals)
 }
 
 func (h *HOTP) generateOTPCode(counter int64) string {
 	text := int64toBytes(counter)
 	h.counter = counter + 1
-	hash := hmac_sha1(h.Key, text)
+	hash := hmac_hash(h.hash.New, h.Key, text)
 	var offset int = int(hash[len(hash)-1] & 0xf)
-	if h.TruncationOffset >= 0 && h.TruncationOffset < sha1.Size-4 {
+	if h.TruncationOffset >= 0 && h.TruncationOffset < len(hash)-4 {
 		offset = h.TruncationOffset
 	}
 	binary := (int(hash[offset]&0x7f) << 24) |

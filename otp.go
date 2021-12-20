@@ -3,11 +3,24 @@
 package gotp
 
 import (
-	"crypto/sha1"
+	"crypto"
 	"encoding/base32"
 	"fmt"
 	"net/url"
 	"strings"
+)
+
+var (
+	hashEncoder = map[crypto.Hash]string{
+		crypto.SHA1:   "SHA1",
+		crypto.SHA256: "SHA256",
+		crypto.SHA512: "SHA512",
+	}
+	hashDecoder = map[string]crypto.Hash{
+		"SHA1":   crypto.SHA1,
+		"SHA256": crypto.SHA256,
+		"SHA512": crypto.SHA512,
+	}
 )
 
 // OTP defines common functions for the one-time passwords
@@ -33,13 +46,14 @@ type OTPKeyData struct {
 	Issuer string
 }
 
-func adjustForSha1(key []byte) []byte {
-	if len(key) > sha1.BlockSize { // if key is longer than block size
-		keyHash := sha1.Sum(key)
+func adjustForHash(key []byte, algorithm crypto.Hash) []byte {
+	hash := algorithm.New()
+	if len(key) > hash.BlockSize() { // if key is longer than block size
+		keyHash := hash.Sum(key)
 		key = keyHash[:]
 	}
-	if len(key) < sha1.BlockSize { // pad the key if needed
-		key = append(key, make([]byte, sha1.BlockSize-len(key))...)
+	if len(key) < hash.BlockSize() { // pad the key if needed
+		key = append(key, make([]byte, hash.BlockSize()-len(key))...)
 	}
 	return key
 }
@@ -61,6 +75,24 @@ func decodeKey(key string) ([]byte, error) {
 	return base32.HexEncoding.DecodeString(key)
 }
 
+func algorithmFromName(algorithm string) (crypto.Hash, error) {
+	algo, exists := hashDecoder[algorithm]
+	if !exists {
+		return 0, fmt.Errorf("Algorithm '%s' is not supported", algorithm)
+	} else {
+		return algo, nil
+	}
+}
+
+func algorithmToName(algorithm crypto.Hash) (string, error) {
+	algo, exists := hashEncoder[algorithm]
+	if !exists {
+		return "", fmt.Errorf("Algorithm '%d' is not supported", algorithm)
+	} else {
+		return algo, nil
+	}
+}
+
 const (
 	typeHotp      = "hotp"
 	typeTotp      = "totp"
@@ -70,13 +102,15 @@ const (
 	digitsKey     = "digits"
 	periodKey     = "period"
 	counterKey    = "counter"
-	defaultDigits = 6
+	algorithmKey  = "algorithm"
+	DefaultDigits = 6
+	SHA1          = "SHA1"
 )
 
 func generateProvisioningUri(otpType string, accountName string, issuer string, digits int, key []byte, extra url.Values) string {
 	extra.Add(secretKey, encodeKey(key))
 	extra.Add(issuerKey, issuer)
-	if digits != defaultDigits {
+	if digits != DefaultDigits {
 		extra.Add(digitsKey, fmt.Sprintf("%d", digits))
 	}
 	u := url.URL{

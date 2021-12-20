@@ -4,13 +4,15 @@
 package gotp
 
 import (
+	"crypto"
+	_ "crypto/sha512"
 	"reflect"
 	"testing"
 )
 
 func TestHOTPGenerate(t *testing.T) {
 	key := []byte("12345678901234567890")
-	otp := NewHOTPDigits(key, 0, defaultDigits)
+	otp := NewHOTPDigits(key, 0, DefaultDigits)
 	expected := []string{
 		"755224",
 		"287082",
@@ -31,9 +33,20 @@ func TestHOTPGenerate(t *testing.T) {
 	}
 }
 
+func TestHOTPGenerateSHA512(t *testing.T) {
+	key := []byte("12345678901234567890")
+	otp := NewHOTPHash(key, 0, DefaultDigits, -1, crypto.SHA512)
+	actual := otp.GenerateOTP(1000)
+	expected := "796611"
+
+	if actual != expected {
+		t.Errorf("Failed to generate code using SHA-512.\nExpected: %s\n  Actual: %s", expected, actual)
+	}
+}
+
 func TestHOTPCounter(t *testing.T) {
 	key := []byte("12345678901234567890")
-	otp := NewHOTPDigits(key, 100, defaultDigits)
+	otp := NewHOTPDigits(key, 100, DefaultDigits)
 	code1 := otp.CurrentOTP()
 	if otp.GetCounter() != 101 {
 		t.Errorf("Internal counter failed to increment")
@@ -49,7 +62,7 @@ func TestHOTPCounter(t *testing.T) {
 
 func TestHOTPVerify(t *testing.T) {
 	key := []byte("12345678901234567890")
-	otp := NewHOTPDigits(key, 0, defaultDigits)
+	otp := NewHOTPDigits(key, 0, DefaultDigits)
 
 	expectedTrue := otp.Verify("338314", 4)
 

@@ -6,8 +6,7 @@ This implemantation supports HMAC-based OTP ([RFC 4226](https://datatracker.ietf
 
 This library allows generation and validation of one-time passwords as used by variuos services. It is compatible with Google Authenticator and Authy.
 
-Currently this library only supports HMAC-SHA1 as underlying HMAC algorithm 
-
+It supports all hash functions in standard library crypto module and provides utility methods to create provisioning URIs from configured OTP generators and parse URIs to configured OTP generators.
 # HMAC-based one-time password
 
 ```go
@@ -67,6 +66,35 @@ GoTP supports generating and parsing of [Google Authenticator-compatible URLs](h
 To generate a new provisioning URL use `ProvisioningUri(label string, issuer string) string` function in `OTP` interface.
 
 To create an OTP generator from URL use `OTPFromUri(uri string) (*OTPKeyData, error)` function. It will return pointer to `OTPKeyData` structure that contains instance of the generator and, additionally, label and issuer fields from the URI.
+
+# Notes on hash functions
+
+This library will work with all hash functions defined in `crypto` module. Default hash function used is `SHA-1`. 
+
+If you see following error
+
+```
+panic: crypto: requested hash function #X is unavailable
+```
+
+you need to import corresponding module so that the hash function can register itself with crypto module.
+
+For example if you want to use TOTP with SHA-512 hash
+
+```go
+    import (
+        "github.com/uaraven/gotp"
+        "crypto"
+        _ "crypto/sha512" // you need this
+    )
+    ...
+
+    totp := gotp.NewTOTPHash([]byte("secret key"), DefaultDigits, DefaultTimeStep, 0, crypto.SHA512)
+    code := totp.Now()
+```
+
+When generating provisioning URI, `algorithm` parameter will be included only if the hash function is one of SHA1, SHA256 or SHA512. 
+Note that some of popular one-time passcode generation applications (like Google Authenticator) will ignore `algorithm` parameter and always use SHA1.
 
 # License
 
