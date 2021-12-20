@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: MIT
 package gotp
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestTOTPGenerate(t *testing.T) {
 	key := []byte("12345678901234567890")
@@ -21,6 +24,16 @@ func TestTOTPGenerate(t *testing.T) {
 	expected = otp.GenerateOTP(20000000000)
 	if expected != "65353130" {
 		t.Errorf("Expected '65353130', but got %s for time=20000000000, digits=10, T0=0", expected)
+	}
+}
+
+func TestHOTPGenerateOffset(t *testing.T) {
+	key := []byte("12345678901234567890")
+	otp := NewTopt(key, 8, 30, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC).Unix())
+	code := otp.At(time.Date(2000, 1, 1, 0, 0, 59, 0, time.UTC))
+
+	if code != "94287082" {
+		t.Errorf("Expected '94287082', but got %s for time=59, digits=10, T0=0", code)
 	}
 }
 

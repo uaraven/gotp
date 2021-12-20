@@ -7,7 +7,7 @@ import "testing"
 
 func TestHOTPGenerate(t *testing.T) {
 	key := []byte("12345678901234567890")
-	otp := NewHotp(key, 6)
+	otp := NewHotpDigits(key, 6)
 	expected := []string{
 		"755224",
 		"287082",
@@ -30,7 +30,7 @@ func TestHOTPGenerate(t *testing.T) {
 
 func TestHOTPVerify(t *testing.T) {
 	key := []byte("12345678901234567890")
-	otp := NewHotp(key, 6)
+	otp := NewHotpDigits(key, 6)
 
 	expectedTrue := otp.Verify("338314", 4)
 
