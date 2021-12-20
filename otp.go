@@ -1,6 +1,5 @@
 // SPDX-FileCopyrightText: 2021 Oleksiy Voronin <me@ovoronin.info>
 // SPDX-License-Identifier: MIT
-
 package gotp
 
 import (
