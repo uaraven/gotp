@@ -5,7 +5,7 @@ package gotp
 
 import "testing"
 
-func TestHOTP(t *testing.T) {
+func TestHOTPGenerate(t *testing.T) {
 	key := []byte("12345678901234567890")
 	otp := NewHotp(key, 6)
 	expected := []string{
@@ -26,4 +26,22 @@ func TestHOTP(t *testing.T) {
 			t.Errorf("Counter: %d, Expected '%s', got '%s'", i, expected[i], actual)
 		}
 	}
+}
+
+func TestHOTPValidate(t *testing.T) {
+	key := []byte("12345678901234567890")
+	otp := NewHotp(key, 6)
+
+	expectedTrue := otp.Validate("338314", 4)
+
+	if expectedTrue != true {
+		t.Errorf("Failed to correctly validate code '338314' at couner 4")
+	}
+
+	expectedFalse := otp.Validate("542321", 12)
+
+	if expectedFalse == true {
+		t.Errorf("Falsely validated code '543321' at couner 12 as correct")
+	}
+
 }

@@ -6,11 +6,14 @@ package gotp
 import (
 	"crypto/hmac"
 	"crypto/sha1"
+	"crypto/subtle"
 	"fmt"
 	"hash"
 )
 
+// Hotp is an implementation of RFC4226, HMAC-based one-time password algorithm
 type Hotp struct {
+	Otp
 	key              []byte
 	hashfunc         hash.Hash
 	digits           int
@@ -63,4 +66,12 @@ func (h *Hotp) GenerateOTP(counter int64) string {
 		(int(hash[offset+3]) & 0xff)
 	otp := binary % powers[h.digits]
 	return fmt.Sprintf("%0*d", h.digits, otp)
+}
+
+func (h *Hotp) Validate(otp string, counter int64) bool {
+	expected := h.GenerateOTP(counter)
+	if subtle.ConstantTimeEq(int32(len(expected)), int32(len(otp))) != 1 {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(expected), []byte(otp)) == 1
 }
