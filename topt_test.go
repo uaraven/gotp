@@ -95,6 +95,7 @@ func TestTotpUrlParser(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	otp := data.OTP.(*TOTP)
 
 	if data.Label != "test@example.com:Example" {
 		t.Errorf("Error parsing label from URL")
@@ -102,13 +103,13 @@ func TestTotpUrlParser(t *testing.T) {
 	if data.Issuer != "test@example.com" {
 		t.Errorf("Error parsing issuer from URL")
 	}
-	if !reflect.DeepEqual(data.OTP.Secret, []byte("key")) {
+	if !reflect.DeepEqual(otp.Secret, []byte("key")) {
 		t.Errorf("Error parsing secret from URL")
 	}
-	if data.OTP.Digits != 8 {
+	if otp.Digits != 8 {
 		t.Errorf("Error parsing digits from URL")
 	}
-	if data.OTP.TimeStep != 30 {
+	if otp.TimeStep != 30 {
 		t.Errorf("Error setting default time step")
 	}
 
@@ -116,10 +117,11 @@ func TestTotpUrlParser(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if data.OTP.Digits != 6 {
+	otp = data.OTP.(*TOTP)
+	if otp.Digits != 6 {
 		t.Errorf("Error setting default digits")
 	}
-	if data.OTP.TimeStep != 45 {
+	if otp.TimeStep != 45 {
 		t.Errorf("Error parsing time step from URL")
 	}
 }
@@ -133,11 +135,11 @@ func TestTotpUrlParserErrors(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid URI schema")
 	}
-	_, err = NewTOTPFromUrl("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com")
+	_, err = NewTOTPFromUrl("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com")
 	if err == nil {
 		t.Errorf("Expected to faile because of missing secret")
 	}
-	_, err = NewTOTPFromUrl("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=XDDINI")
+	_, err = NewTOTPFromUrl("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=XDDINI")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid secret")
 	}

@@ -18,6 +18,16 @@ type OTP interface {
 	ProvisioningUrl(label string, issuer string) string
 }
 
+// OTPKeyData contains data parsed from otpauth URL
+type OTPKeyData struct {
+	// OTP implementation, either *HOTP or *TOTP
+	OTP OTP
+	// Label contains user-visible label for the OTP
+	Label string
+	// Issuer contains the name of the issuer of the OTP
+	Issuer string
+}
+
 func adjustForSha1(key []byte) []byte {
 	if len(key) > sha1.BlockSize { // if key is longer than block size
 		keyHash := sha1.Sum(key)
@@ -54,6 +64,7 @@ const (
 	issuerKey     = "issuer"
 	digitsKey     = "digits"
 	periodKey     = "period"
+	counterKey    = "counter"
 	defaultDigits = 6
 )
 
@@ -70,4 +81,21 @@ func generateProvisioningUrl(otpType string, accountName string, issuer string, 
 		RawQuery: extra.Encode(),
 	}
 	return u.String()
+}
+
+func OTPFromURL(uri string) (*OTPKeyData, error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+	if u.Scheme != otpAuthSheme {
+		return nil, fmt.Errorf("unsupported URL scheme: %s, expected 'otpauth'", u.Scheme)
+	}
+	if u.Host == typeTotp {
+		return NewTOTPFromUrl(uri)
+	} else if u.Host == typeHotp {
+		return NewHOTPFromUrl(uri)
+	} else {
+		return nil, fmt.Errorf("unsupported auth type: %s, expected 'totp' or 'hotp'", u.Host)
+	}
 }

@@ -24,17 +24,11 @@ type TOTP struct {
 	TimeStep int
 }
 
-type TotpKeyData struct {
-	OTP    *TOTP
-	Label  string
-	Issuer string
-}
-
 // DefaultInterval is the default time step and is equal to 30 seconds
 const DefaultInterval = 30
 
 // NewTOTPFromUrl creates an instance of TOTP with the parameters specified in URL
-func NewTOTPFromUrl(uri string) (*TotpKeyData, error) {
+func NewTOTPFromUrl(uri string) (*OTPKeyData, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -69,7 +63,7 @@ func NewTOTPFromUrl(uri string) (*TotpKeyData, error) {
 		return nil, err
 	}
 
-	return &TotpKeyData{
+	return &OTPKeyData{
 		OTP:    NewTOTP(key, int(digits), int(interval), 0),
 		Label:  label,
 		Issuer: issuer}, nil
@@ -119,7 +113,7 @@ func NewTOTP(key []byte, digits int, interval int, startTime int64) *TOTP {
 // based on the timestamp value
 func (t *TOTP) GenerateOTP(timestamp int64) string {
 	timeSteps := (timestamp - t.StartTime) / int64(t.TimeStep)
-	h := NewHotpDigits(t.Key, t.Digits)
+	h := NewHOTPDigits(t.Key, 0, t.Digits)
 	return h.GenerateOTP(timeSteps)
 }
 
@@ -195,5 +189,5 @@ func (t *TOTP) ProvisioningUrl(accountName string, issuer string) string {
 	if t.TimeStep != DefaultInterval {
 		vals.Add(periodKey, fmt.Sprintf("%d", t.TimeStep))
 	}
-	return generateProvisioningUrl("totp", accountName, issuer, t.Digits, t.Secret, vals)
+	return generateProvisioningUrl(typeTotp, accountName, issuer, t.Digits, t.Secret, vals)
 }
