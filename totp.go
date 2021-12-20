@@ -13,7 +13,6 @@ import (
 )
 
 // TOTP is an implementation of RFC6238, Time-based one-time password algorithm
-// Currently only HMAC-SHA1 is supported as underlying HMAC function
 type TOTP struct {
 	OTP
 	// hash is a hash function to be used for HMAC

@@ -78,7 +78,7 @@ func decodeKey(key string) ([]byte, error) {
 func algorithmFromName(algorithm string) (crypto.Hash, error) {
 	algo, exists := hashDecoder[algorithm]
 	if !exists {
-		return 0, fmt.Errorf("Algorithm '%s' is not supported", algorithm)
+		return 0, fmt.Errorf("algorithm '%s' is not supported", algorithm)
 	} else {
 		return algo, nil
 	}
@@ -87,24 +87,26 @@ func algorithmFromName(algorithm string) (crypto.Hash, error) {
 func algorithmToName(algorithm crypto.Hash) (string, error) {
 	algo, exists := hashEncoder[algorithm]
 	if !exists {
-		return "", fmt.Errorf("Algorithm '%d' is not supported", algorithm)
+		return "", fmt.Errorf("algorithm '%d' is not supported", algorithm)
 	} else {
 		return algo, nil
 	}
 }
 
 const (
-	typeHotp      = "hotp"
-	typeTotp      = "totp"
-	otpAuthSheme  = "otpauth"
-	secretKey     = "secret"
-	issuerKey     = "issuer"
-	digitsKey     = "digits"
-	periodKey     = "period"
-	counterKey    = "counter"
-	algorithmKey  = "algorithm"
+	typeHotp     = "hotp"
+	typeTotp     = "totp"
+	otpAuthSheme = "otpauth"
+	secretKey    = "secret"
+	issuerKey    = "issuer"
+	digitsKey    = "digits"
+	periodKey    = "period"
+	counterKey   = "counter"
+	algorithmKey = "algorithm"
+	// DefaultDigits is the default length of the one-time passcode
 	DefaultDigits = 6
-	SHA1          = "SHA1"
+	// SHA1 is the default hash algorithm used with HMAC
+	SHA1 = "SHA1"
 )
 
 func generateProvisioningUri(otpType string, accountName string, issuer string, digits int, key []byte, extra url.Values) string {
