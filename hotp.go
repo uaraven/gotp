@@ -8,14 +8,13 @@ import (
 	"crypto/sha1"
 	"crypto/subtle"
 	"fmt"
-	"hash"
 )
 
 // Hotp is an implementation of RFC4226, HMAC-based one-time password algorithm
+// Currently only HMAC-SHA1 is supported
 type Hotp struct {
 	Otp
 	key              []byte
-	hashfunc         hash.Hash
 	digits           int
 	TruncationOffset int
 }
@@ -27,13 +26,7 @@ func hmac_sha1(key, data []byte) []byte {
 }
 
 func NewHotp(key []byte, digits int) *Hotp {
-	if len(key) > sha1.BlockSize { // if key is longer than block size
-		keyHash := sha1.Sum(key)
-		key = keyHash[:]
-	}
-	if len(key) < sha1.BlockSize { // pad the key if needed
-		key = append(key, make([]byte, sha1.BlockSize-len(key))...)
-	}
+	key = adjustForSha1(key)
 	return &Hotp{
 		key:              key,
 		digits:           digits,
@@ -57,7 +50,7 @@ func (h *Hotp) GenerateOTP(counter int64) string {
 	text := int64toBytes(counter)
 	hash := hmac_sha1(h.key, text)
 	var offset int = int(hash[len(hash)-1] & 0xf)
-	if h.TruncationOffset >= 0 && h.TruncationOffset < h.hashfunc.Size()-4 {
+	if h.TruncationOffset >= 0 && h.TruncationOffset < sha1.Size-4 {
 		offset = h.TruncationOffset
 	}
 	binary := (int(hash[offset]&0x7f) << 24) |
@@ -68,7 +61,7 @@ func (h *Hotp) GenerateOTP(counter int64) string {
 	return fmt.Sprintf("%0*d", h.digits, otp)
 }
 
-func (h *Hotp) Validate(otp string, counter int64) bool {
+func (h *Hotp) Verify(otp string, counter int64) bool {
 	expected := h.GenerateOTP(counter)
 	if subtle.ConstantTimeEq(int32(len(expected)), int32(len(otp))) != 1 {
 		return false

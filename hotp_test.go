@@ -28,17 +28,17 @@ func TestHOTPGenerate(t *testing.T) {
 	}
 }
 
-func TestHOTPValidate(t *testing.T) {
+func TestHOTPVerify(t *testing.T) {
 	key := []byte("12345678901234567890")
 	otp := NewHotp(key, 6)
 
-	expectedTrue := otp.Validate("338314", 4)
+	expectedTrue := otp.Verify("338314", 4)
 
 	if expectedTrue != true {
 		t.Errorf("Failed to correctly validate code '338314' at couner 4")
 	}
 
-	expectedFalse := otp.Validate("542321", 12)
+	expectedFalse := otp.Verify("542321", 12)
 
 	if expectedFalse == true {
 		t.Errorf("Falsely validated code '543321' at couner 12 as correct")
