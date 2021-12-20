@@ -7,7 +7,8 @@ This implemantation supports HMAC-based OTP ([RFC 4226](https://datatracker.ietf
 This library allows generation and validation of one-time passwords as used by variuos services. It is compatible with Google Authenticator and Authy.
 
 It supports all hash functions in standard library crypto module and provides utility methods to create provisioning URIs from configured OTP generators and parse URIs to configured OTP generators.
-# HMAC-based one-time password
+
+# HMAC-based One-time Password
 
 ```go
 
@@ -31,7 +32,7 @@ password is requested. Counter can be reset by either setting it directly with `
 
 `HOTP` also provides basic verification function. Resynchronization and verification throttling are out of scope for this library.
 
-# TOTP
+# Time-based One-time Password
 
 ```go
 
