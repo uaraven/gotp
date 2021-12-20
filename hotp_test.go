@@ -31,6 +31,22 @@ func TestHOTPGenerate(t *testing.T) {
 	}
 }
 
+func TestHOTPCounter(t *testing.T) {
+	key := []byte("12345678901234567890")
+	otp := NewHOTPDigits(key, 100, defaultDigits)
+	code1 := otp.CurrentOTP()
+	if otp.GetCounter() != 101 {
+		t.Errorf("Internal counter failed to increment")
+	}
+	code2 := otp.CurrentOTP()
+	if otp.GetCounter() != 102 {
+		t.Errorf("Internal counter failed to increment")
+	}
+	if code1 == code2 {
+		t.Errorf("Subsequent calls to CurrentOTP() must produce different results")
+	}
+}
+
 func TestHOTPVerify(t *testing.T) {
 	key := []byte("12345678901234567890")
 	otp := NewHOTPDigits(key, 0, defaultDigits)
@@ -50,7 +66,7 @@ func TestHOTPVerify(t *testing.T) {
 
 func TestHotpUrlGenerator(t *testing.T) {
 	hotp := NewHOTPDigits([]byte("key"), 342, 8)
-	url := hotp.ProvisioningUrl("Example", "test@example.com")
+	url := hotp.ProvisioningUri("Example", "test@example.com")
 
 	expected := "otpauth://hotp/test@example.com:Example?counter=342&digits=8&issuer=test%40example.com&secret=DDINI"
 	if url != expected {
@@ -58,7 +74,7 @@ func TestHotpUrlGenerator(t *testing.T) {
 	}
 
 	hotp = NewDefaultHOTP([]byte("key"), 2342)
-	url = hotp.ProvisioningUrl("Example", "test@example.com")
+	url = hotp.ProvisioningUri("Example", "test@example.com")
 
 	expected = "otpauth://hotp/test@example.com:Example?counter=2342&issuer=test%40example.com&secret=DDINI"
 	if url != expected {
@@ -67,7 +83,7 @@ func TestHotpUrlGenerator(t *testing.T) {
 }
 
 func TestHotpUrlParser(t *testing.T) {
-	data, err := NewHOTPFromUrl("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
+	data, err := NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
 	if err != nil {
 		t.Error(err)
 	}
@@ -85,11 +101,11 @@ func TestHotpUrlParser(t *testing.T) {
 	if otp.Digits != 8 {
 		t.Errorf("Error parsing digits from URL")
 	}
-	if otp.Counter != 0 {
+	if otp.counter != 0 {
 		t.Errorf("Error setting default counter")
 	}
 
-	data, err = NewHOTPFromUrl("otpauth://hotp/test@example.com:Example?issuer=test%40example.com&counter=45&secret=DDINI")
+	data, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?issuer=test%40example.com&counter=45&secret=DDINI")
 	if err != nil {
 		t.Error(err)
 	}
@@ -97,25 +113,25 @@ func TestHotpUrlParser(t *testing.T) {
 	if otp.Digits != 6 {
 		t.Errorf("Error setting default digits")
 	}
-	if otp.Counter != 45 {
+	if otp.counter != 45 {
 		t.Errorf("Error parsing counter from URL")
 	}
 }
 
 func TestHotpUrlParserErrors(t *testing.T) {
-	_, err := NewHOTPFromUrl("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
+	_, err := NewHOTPFromUri("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid otp type")
 	}
-	_, err = NewHOTPFromUrl("not_otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
+	_, err = NewHOTPFromUri("not_otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid URI schema")
 	}
-	_, err = NewHOTPFromUrl("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com")
+	_, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com")
 	if err == nil {
 		t.Errorf("Expected to faile because of missing secret")
 	}
-	_, err = NewTOTPFromUrl("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=XDDINI")
+	_, err = NewTOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=XDDINI")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid secret")
 	}

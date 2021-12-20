@@ -15,7 +15,7 @@ import (
 type OTP interface {
 	GenerateOTP(counter int64) string
 	Verify(otp string, counter int64) bool
-	ProvisioningUrl(label string, issuer string) string
+	ProvisioningUri(label string, issuer string) string
 }
 
 // OTPKeyData contains data parsed from otpauth URL
@@ -68,7 +68,7 @@ const (
 	defaultDigits = 6
 )
 
-func generateProvisioningUrl(otpType string, accountName string, issuer string, digits int, key []byte, extra url.Values) string {
+func generateProvisioningUri(otpType string, accountName string, issuer string, digits int, key []byte, extra url.Values) string {
 	extra.Add(secretKey, encodeKey(key))
 	extra.Add(issuerKey, issuer)
 	if digits != defaultDigits {
@@ -83,7 +83,9 @@ func generateProvisioningUrl(otpType string, accountName string, issuer string, 
 	return u.String()
 }
 
-func OTPFromURL(uri string) (*OTPKeyData, error) {
+// OTPFromUri returns a pointer to OTPKeyData structure that contains instance of one-time password implementation (eitehr HOTP or TOTP, depending on URL) and
+// label and issuer information from the URI
+func OTPFromUri(uri string) (*OTPKeyData, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -92,9 +94,9 @@ func OTPFromURL(uri string) (*OTPKeyData, error) {
 		return nil, fmt.Errorf("unsupported URL scheme: %s, expected 'otpauth'", u.Scheme)
 	}
 	if u.Host == typeTotp {
-		return NewTOTPFromUrl(uri)
+		return NewTOTPFromUri(uri)
 	} else if u.Host == typeHotp {
-		return NewHOTPFromUrl(uri)
+		return NewHOTPFromUri(uri)
 	} else {
 		return nil, fmt.Errorf("unsupported auth type: %s, expected 'totp' or 'hotp'", u.Host)
 	}

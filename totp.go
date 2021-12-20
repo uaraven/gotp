@@ -27,8 +27,8 @@ type TOTP struct {
 // DefaultInterval is the default time step and is equal to 30 seconds
 const DefaultInterval = 30
 
-// NewTOTPFromUrl creates an instance of TOTP with the parameters specified in URL
-func NewTOTPFromUrl(uri string) (*OTPKeyData, error) {
+// NewTOTPFromUri creates an instance of TOTP with the parameters specified in URL
+func NewTOTPFromUri(uri string) (*OTPKeyData, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -184,10 +184,10 @@ func (t *TOTP) VerifyAtWithinWindow(otp string, date time.Time, validationWindow
 // Generates provisioning URL with the configured parameters as described in https://github.com/google/google-authenticator/wiki/Key-Uri-Format
 //
 // Note that startTime cannot be added to provisioning URL
-func (t *TOTP) ProvisioningUrl(accountName string, issuer string) string {
+func (t *TOTP) ProvisioningUri(accountName string, issuer string) string {
 	vals := make(url.Values)
 	if t.TimeStep != DefaultInterval {
 		vals.Add(periodKey, fmt.Sprintf("%d", t.TimeStep))
 	}
-	return generateProvisioningUrl(typeTotp, accountName, issuer, t.Digits, t.Secret, vals)
+	return generateProvisioningUri(typeTotp, accountName, issuer, t.Digits, t.Secret, vals)
 }

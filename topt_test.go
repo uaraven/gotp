@@ -66,7 +66,7 @@ func TestTOTPVerifyWithWindow(t *testing.T) {
 
 func TestTotpUrlGenerator(t *testing.T) {
 	totp := NewTOTPDigits([]byte("key"), 8)
-	url := totp.ProvisioningUrl("Example", "test@example.com")
+	url := totp.ProvisioningUri("Example", "test@example.com")
 
 	expected := "otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI"
 	if url != expected {
@@ -74,7 +74,7 @@ func TestTotpUrlGenerator(t *testing.T) {
 	}
 
 	totp = NewDefaultTOTP([]byte("key"))
-	url = totp.ProvisioningUrl("Example", "test@example.com")
+	url = totp.ProvisioningUri("Example", "test@example.com")
 
 	expected = "otpauth://totp/test@example.com:Example?issuer=test%40example.com&secret=DDINI"
 	if url != expected {
@@ -82,7 +82,7 @@ func TestTotpUrlGenerator(t *testing.T) {
 	}
 
 	totp = NewTOTP([]byte("key"), 8, 45, 0)
-	url = totp.ProvisioningUrl("Example", "test@example.com")
+	url = totp.ProvisioningUri("Example", "test@example.com")
 
 	expected = "otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&period=45&secret=DDINI"
 	if url != expected {
@@ -91,7 +91,7 @@ func TestTotpUrlGenerator(t *testing.T) {
 }
 
 func TestTotpUrlParser(t *testing.T) {
-	data, err := NewTOTPFromUrl("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
+	data, err := NewTOTPFromUri("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
 	if err != nil {
 		t.Error(err)
 	}
@@ -113,7 +113,7 @@ func TestTotpUrlParser(t *testing.T) {
 		t.Errorf("Error setting default time step")
 	}
 
-	data, err = NewTOTPFromUrl("otpauth://totp/test@example.com:Example?issuer=test%40example.com&period=45&secret=DDINI")
+	data, err = NewTOTPFromUri("otpauth://totp/test@example.com:Example?issuer=test%40example.com&period=45&secret=DDINI")
 	if err != nil {
 		t.Error(err)
 	}
@@ -127,19 +127,19 @@ func TestTotpUrlParser(t *testing.T) {
 }
 
 func TestTotpUrlParserErrors(t *testing.T) {
-	_, err := NewTOTPFromUrl("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
+	_, err := NewTOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid otp type")
 	}
-	_, err = NewTOTPFromUrl("not_otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
+	_, err = NewTOTPFromUri("not_otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid URI schema")
 	}
-	_, err = NewTOTPFromUrl("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com")
+	_, err = NewTOTPFromUri("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com")
 	if err == nil {
 		t.Errorf("Expected to faile because of missing secret")
 	}
-	_, err = NewTOTPFromUrl("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=XDDINI")
+	_, err = NewTOTPFromUri("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=XDDINI")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid secret")
 	}

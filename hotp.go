@@ -10,20 +10,22 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"sync"
 )
 
 // HOTP is an implementation of RFC4226, HMAC-based one-time password algorithm
 // Currently only HMAC-SHA1 is supported
 type HOTP struct {
 	OTP
+	sync *sync.RWMutex
 	// Secret is the original shared secret
 	Secret []byte
 	// Key is the secret padded to the required size
 	Key []byte
 	// Digits is a number of digits in the resulting code
 	Digits int
-	// Counter is incremented every time HOTP is requested
-	Counter int64
+	// counter is incremented every time HOTP is requested
+	counter int64
 	// TruncationOffset is offset value for truncation function
 	TruncationOffset int
 }
@@ -34,8 +36,8 @@ func hmac_sha1(key, data []byte) []byte {
 	return hm.Sum([]byte{})
 }
 
-// NewHOTPFromUrl creates an instance of HOTP with the parameters specified in URL
-func NewHOTPFromUrl(uri string) (*OTPKeyData, error) {
+// NewHOTPFromUri creates an instance of HOTP with the parameters specified in URL
+func NewHOTPFromUri(uri string) (*OTPKeyData, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -110,10 +112,11 @@ func NewHOTP(key []byte, digits int, counter int64, truncationOffset int) *HOTP 
 		panic(fmt.Errorf("maximum supported number of digits is 10"))
 	}
 	return &HOTP{
+		sync:             &sync.RWMutex{},
 		Secret:           secret,
 		Key:              key,
 		Digits:           digits,
-		Counter:          counter,
+		counter:          counter,
 		TruncationOffset: truncationOffset,
 	}
 }
@@ -135,7 +138,7 @@ func int64toBytes(d int64) []byte {
 //
 // Counter is incremented automatically
 func (h *HOTP) CurrentOTP() string {
-	return h.GenerateOTP(h.Counter)
+	return h.GenerateOTP(h.counter)
 }
 
 // Current generates a string containing numeric one-time password code
@@ -143,37 +146,44 @@ func (h *HOTP) CurrentOTP() string {
 //
 // Counter is not changed
 func (h *HOTP) generateNoIncrement(counter int64) string {
-	c := h.Counter
-	result := h.GenerateOTP(counter)
-	h.Counter = c
+	defer h.sync.Unlock()
+	h.sync.Lock()
+	c := h.counter
+	result := h.generateOTPCode(counter)
+	h.counter = c
 	return result
+}
+
+// SetCounter sets internal counter value
+func (h *HOTP) SetCounter(newCounter int64) {
+	defer h.sync.Unlock()
+	h.sync.Lock()
+	h.counter = newCounter
+}
+
+// GetCounter gets current internal counter value
+func (h *HOTP) GetCounter() int64 {
+	defer h.sync.RUnlock()
+	h.sync.RLock()
+	return h.counter
 }
 
 // GenerateOTP generates a string containing numeric one-time password code
 // based on the counter value
 //
-// HOTP counter is set to the next value
+// HOTP internal counter is set to the provided counter value before generating the new OTP code. Internal counter will be
+// incremented after the code is generated
 func (h *HOTP) GenerateOTP(counter int64) string {
-	text := int64toBytes(counter)
-	h.Counter = counter + 1
-	hash := hmac_sha1(h.Key, text)
-	var offset int = int(hash[len(hash)-1] & 0xf)
-	if h.TruncationOffset >= 0 && h.TruncationOffset < sha1.Size-4 {
-		offset = h.TruncationOffset
-	}
-	binary := (int(hash[offset]&0x7f) << 24) |
-		(int(hash[offset+1]&0xff) << 16) |
-		(int(hash[offset+2]&0xff) << 8) |
-		(int(hash[offset+3]) & 0xff)
-	otp := binary % powers[h.Digits]
-	return fmt.Sprintf("%0*d", h.Digits, otp)
+	defer h.sync.Unlock()
+	h.sync.Lock()
+	return h.generateOTPCode(counter)
 }
 
 func (h *HOTP) VerifyCurrent(otp string) bool {
 	if len(otp) != h.Digits {
 		return false
 	}
-	expected := h.generateNoIncrement(h.Counter)
+	expected := h.generateNoIncrement(h.counter)
 	return subtle.ConstantTimeCompare([]byte(expected), []byte(otp)) == 1
 }
 
@@ -198,8 +208,24 @@ func (h *HOTP) Verify(otp string, counter int64) bool {
 // It is recommended to use ProvisioningUrlWithCounter instead
 //
 // Note that truncationOffset cannot be added to provisioning URL
-func (h *HOTP) ProvisioningUrl(accountName string, issuer string) string {
+func (h *HOTP) ProvisioningUri(accountName string, issuer string) string {
 	vals := make(url.Values)
-	vals.Add("counter", fmt.Sprintf("%d", h.Counter))
-	return generateProvisioningUrl(typeHotp, accountName, issuer, h.Digits, h.Secret, vals)
+	vals.Add("counter", fmt.Sprintf("%d", h.counter))
+	return generateProvisioningUri(typeHotp, accountName, issuer, h.Digits, h.Secret, vals)
+}
+
+func (h *HOTP) generateOTPCode(counter int64) string {
+	text := int64toBytes(counter)
+	h.counter = counter + 1
+	hash := hmac_sha1(h.Key, text)
+	var offset int = int(hash[len(hash)-1] & 0xf)
+	if h.TruncationOffset >= 0 && h.TruncationOffset < sha1.Size-4 {
+		offset = h.TruncationOffset
+	}
+	binary := (int(hash[offset]&0x7f) << 24) |
+		(int(hash[offset+1]&0xff) << 16) |
+		(int(hash[offset+2]&0xff) << 8) |
+		(int(hash[offset+3]) & 0xff)
+	otp := binary % powers[h.Digits]
+	return fmt.Sprintf("%0*d", h.Digits, otp)
 }
