@@ -24,7 +24,7 @@ It supports all hash functions in standard library crypto module and provides ut
 
 ```
 
-`NewHOTP` function creates HOTP instance with parameters such as number of digits in the one-time code and truncation offset. You can use `NewDefaultHOTP` with the sane default parameters (6 digits, dynamic truncation).
+`NewHOTP` function creates HOTP instance with parameters such as number of digits in the one-time code and truncation offset. You can use `NewDefaultHOTP` with the sane default parameters (6 digits, dynamic truncation, SHA1 hash function).
 
 Default counter value must be provided every time when instance of `HOTP` is created. The counter will increment every time new one-time
 password is requested. Counter can be reset by either setting it directly with `HOTP.SetCounter(value)` or by calling `HOTP.GenerateOTP(counter)`. In the latter case internal HOTP counter will be updated to the new value and the counter will be incremented after the one-time password is generated.
