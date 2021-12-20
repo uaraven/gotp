@@ -1,6 +1,6 @@
-# GoTP: OTP library for Go
+# GoTP: One-time passwor library for Go
 
-One-time password library provides implementations of HMAC-based OTP ([RFC 4226](https://datatracker.ietf.org/doc/html/rfc4226)) and Time-based OTP ([RFC 6238](https://www.rfc-editor.org/rfc/rfc6238.html)).
+GoTP library provides implementations of HMAC-based OTP ([RFC 4226](https://datatracker.ietf.org/doc/html/rfc4226)) and Time-based OTP ([RFC 6238](https://www.rfc-editor.org/rfc/rfc6238.html)).
 
 # Usage
 
