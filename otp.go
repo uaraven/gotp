@@ -58,7 +58,10 @@ func adjustForHash(key []byte, algorithm crypto.Hash) []byte {
 	return key
 }
 
-func encodeKey(key []byte) string {
+// EncodeKey converts a key to Base32 representation
+//
+// Padding symbols '=' are stripped from the end of string
+func EncodeKey(key []byte) string {
 	encoded := base32.HexEncoding.EncodeToString(key)
 	eqIdx := strings.Index(encoded, "=")
 	if eqIdx >= 0 {
@@ -67,7 +70,10 @@ func encodeKey(key []byte) string {
 	return encoded
 }
 
-func decodeKey(key string) ([]byte, error) {
+// DecodeKey converts a Base32-encoded key to a byte slice
+//
+// key does not have to have proper '=' padding
+func DecodeKey(key string) ([]byte, error) {
 	missingPadding := len(key) % 8
 	if missingPadding != 0 {
 		key = key + strings.Repeat("=", 8-missingPadding)
@@ -110,7 +116,7 @@ const (
 )
 
 func generateProvisioningUri(otpType string, accountName string, issuer string, digits int, key []byte, extra url.Values) string {
-	extra.Add(secretKey, encodeKey(key))
+	extra.Add(secretKey, EncodeKey(key))
 	extra.Add(issuerKey, issuer)
 	if digits != DefaultDigits {
 		extra.Add(digitsKey, fmt.Sprintf("%d", digits))

@@ -76,7 +76,7 @@ func NewHOTPFromUri(uri string) (*OTPKeyData, error) {
 			return nil, err
 		}
 	}
-	key, err := decodeKey(u.Query().Get(secretKey))
+	key, err := DecodeKey(u.Query().Get(secretKey))
 	if err != nil {
 		return nil, err
 	}
