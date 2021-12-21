@@ -18,8 +18,8 @@ import (
 type HOTP struct {
 	OTP
 	sync *sync.RWMutex
-	// hash is the Hash function used by HMAC
-	hash crypto.Hash
+	// Hash is the Hash function used by HMAC
+	Hash crypto.Hash
 	// Secret is the original shared secret
 	Secret []byte
 	// Key is the secret padded to the required size
@@ -144,7 +144,7 @@ func NewHOTPHash(key []byte, counter int64, digits int, truncationOffset int, al
 	}
 	return &HOTP{
 		sync:             &sync.RWMutex{},
-		hash:             algorithm,
+		Hash:             algorithm,
 		Secret:           secret,
 		Key:              key,
 		Digits:           digits,
@@ -244,8 +244,8 @@ func (h *HOTP) Verify(otp string, counter int64) bool {
 func (h *HOTP) ProvisioningUri(accountName string, issuer string) string {
 	vals := make(url.Values)
 	vals.Add(counterKey, fmt.Sprintf("%d", h.counter))
-	algoName, err := algorithmToName(h.hash)
-	if err != nil && h.hash != crypto.SHA1 {
+	algoName, err := algorithmToName(h.Hash)
+	if err == nil && h.Hash != crypto.SHA1 {
 		vals.Add(algorithmKey, algoName)
 	}
 	return generateProvisioningUri(typeHotp, accountName, issuer, h.Digits, h.Secret, vals)
@@ -254,7 +254,7 @@ func (h *HOTP) ProvisioningUri(accountName string, issuer string) string {
 func (h *HOTP) generateOTPCode(counter int64) string {
 	text := int64toBytes(counter)
 	h.counter = counter + 1
-	hash := hmac_hash(h.hash.New, h.Key, text)
+	hash := hmac_hash(h.Hash.New, h.Key, text)
 	var offset int = int(hash[len(hash)-1] & 0xf)
 	if h.TruncationOffset >= 0 && h.TruncationOffset < len(hash)-4 {
 		offset = h.TruncationOffset

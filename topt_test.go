@@ -3,6 +3,8 @@
 package gotp
 
 import (
+	"crypto"
+	_ "crypto/sha256"
 	"reflect"
 	"testing"
 	"time"
@@ -88,6 +90,14 @@ func TestTotpUrlGenerator(t *testing.T) {
 	if url != expected {
 		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
 	}
+
+	totp = NewTOTPHash([]byte("key"), DefaultDigits, DefaultTimeStep, 0, crypto.SHA512)
+	url = totp.ProvisioningUri("Example", "test@example.com")
+
+	expected = "otpauth://totp/test@example.com:Example?algorithm=SHA512&issuer=test%40example.com&secret=DDINI"
+	if url != expected {
+		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
+	}
 }
 
 func TestTotpUrlParser(t *testing.T) {
@@ -122,6 +132,15 @@ func TestTotpUrlParser(t *testing.T) {
 		t.Errorf("Error setting default digits")
 	}
 	if otp.TimeStep != 45 {
+		t.Errorf("Error parsing time step from URL")
+	}
+
+	data, err = NewTOTPFromUri("otpauth://totp/test@example.com:Example?algorithm=SHA256&issuer=test%40example.com&secret=DDINI")
+	if err != nil {
+		t.Error(err)
+	}
+	otp = data.OTP.(*TOTP)
+	if otp.Hash != crypto.SHA256 {
 		t.Errorf("Error parsing time step from URL")
 	}
 }

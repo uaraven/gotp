@@ -15,8 +15,8 @@ import (
 // TOTP is an implementation of RFC6238, Time-based one-time password algorithm
 type TOTP struct {
 	OTP
-	// hash is a hash function to be used for HMAC
-	hash crypto.Hash
+	// Hash is a Hash function to be used for HMAC
+	Hash crypto.Hash
 	// Secret is the original shared secret
 	Secret []byte
 	// Key is the secret padded to the required size
@@ -135,7 +135,7 @@ func NewTOTPHash(key []byte, digits int, interval int, startTime int64, hash cry
 		StartTime: startTime,
 		Digits:    digits,
 		TimeStep:  interval,
-		hash:      hash,
+		Hash:      hash,
 	}
 }
 
@@ -222,8 +222,8 @@ func (t *TOTP) ProvisioningUri(accountName string, issuer string) string {
 	if t.TimeStep != DefaultTimeStep {
 		vals.Add(periodKey, fmt.Sprintf("%d", t.TimeStep))
 	}
-	algoName, err := algorithmToName(t.hash)
-	if t.hash != crypto.SHA1 && err == nil {
+	algoName, err := algorithmToName(t.Hash)
+	if t.Hash != crypto.SHA1 && err == nil {
 		vals.Add(algorithmKey, algoName)
 	}
 	return generateProvisioningUri(typeTotp, accountName, issuer, t.Digits, t.Secret, vals)

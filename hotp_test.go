@@ -93,6 +93,14 @@ func TestHotpUrlGenerator(t *testing.T) {
 	if url != expected {
 		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
 	}
+
+	hotp = NewHOTPHash([]byte("key"), 2342, DefaultDigits, -1, crypto.SHA512)
+	url = hotp.ProvisioningUri("Example", "test@example.com")
+
+	expected = "otpauth://hotp/test@example.com:Example?algorithm=SHA512&counter=2342&issuer=test%40example.com&secret=DDINI"
+	if url != expected {
+		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
+	}
 }
 
 func TestHotpUrlParser(t *testing.T) {
@@ -128,6 +136,15 @@ func TestHotpUrlParser(t *testing.T) {
 	}
 	if otp.counter != 45 {
 		t.Errorf("Error parsing counter from URL")
+	}
+
+	data, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?algorithm=SHA512&counter=10&issuer=test%40example.com&secret=DDINI")
+	if err != nil {
+		t.Error(err)
+	}
+	otp = data.OTP.(*HOTP)
+	if otp.Hash != crypto.SHA512 {
+		t.Errorf("Error parsing time step from URL")
 	}
 }
 
