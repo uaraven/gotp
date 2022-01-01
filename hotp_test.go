@@ -81,7 +81,7 @@ func TestHotpUrlGenerator(t *testing.T) {
 	hotp := NewHOTPDigits([]byte("key"), 342, 8)
 	url := hotp.ProvisioningUri("Example", "test@example.com")
 
-	expected := "otpauth://hotp/test@example.com:Example?counter=342&digits=8&issuer=test%40example.com&secret=DDINI"
+	expected := "otpauth://hotp/test@example.com:Example?counter=342&digits=8&issuer=test%40example.com&secret=NNSXS"
 	if url != expected {
 		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
 	}
@@ -89,7 +89,7 @@ func TestHotpUrlGenerator(t *testing.T) {
 	hotp = NewDefaultHOTP([]byte("key"), 2342)
 	url = hotp.ProvisioningUri("Example", "test@example.com")
 
-	expected = "otpauth://hotp/test@example.com:Example?counter=2342&issuer=test%40example.com&secret=DDINI"
+	expected = "otpauth://hotp/test@example.com:Example?counter=2342&issuer=test%40example.com&secret=NNSXS"
 	if url != expected {
 		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
 	}
@@ -97,14 +97,14 @@ func TestHotpUrlGenerator(t *testing.T) {
 	hotp = NewHOTPHash([]byte("key"), 2342, DefaultDigits, -1, crypto.SHA512)
 	url = hotp.ProvisioningUri("Example", "test@example.com")
 
-	expected = "otpauth://hotp/test@example.com:Example?algorithm=SHA512&counter=2342&issuer=test%40example.com&secret=DDINI"
+	expected = "otpauth://hotp/test@example.com:Example?algorithm=SHA512&counter=2342&issuer=test%40example.com&secret=NNSXS"
 	if url != expected {
 		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
 	}
 }
 
 func TestHotpUrlParser(t *testing.T) {
-	data, err := NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
+	data, err := NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS")
 	if err != nil {
 		t.Error(err)
 	}
@@ -126,7 +126,7 @@ func TestHotpUrlParser(t *testing.T) {
 		t.Errorf("Error setting default counter")
 	}
 
-	data, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?issuer=test%40example.com&counter=45&secret=DDINI")
+	data, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?issuer=test%40example.com&counter=45&secret=NNSXS")
 	if err != nil {
 		t.Error(err)
 	}
@@ -138,7 +138,7 @@ func TestHotpUrlParser(t *testing.T) {
 		t.Errorf("Error parsing counter from URL")
 	}
 
-	data, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?algorithm=SHA512&counter=10&issuer=test%40example.com&secret=DDINI")
+	data, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?algorithm=SHA512&counter=10&issuer=test%40example.com&secret=NNSXS")
 	if err != nil {
 		t.Error(err)
 	}
@@ -149,11 +149,11 @@ func TestHotpUrlParser(t *testing.T) {
 }
 
 func TestHotpUrlParserErrors(t *testing.T) {
-	_, err := NewHOTPFromUri("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
+	_, err := NewHOTPFromUri("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid otp type")
 	}
-	_, err = NewHOTPFromUri("not_otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=DDINI")
+	_, err = NewHOTPFromUri("not_otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid URI schema")
 	}
@@ -161,7 +161,7 @@ func TestHotpUrlParserErrors(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected to faile because of missing secret")
 	}
-	_, err = NewTOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=XDDINI")
+	_, err = NewTOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS0X")
 	if err == nil {
 		t.Errorf("Expected to faile because of invalid secret")
 	}

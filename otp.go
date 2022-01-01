@@ -7,7 +7,6 @@ import (
 	"encoding/base32"
 	"fmt"
 	"net/url"
-	"strings"
 )
 
 var (
@@ -62,23 +61,14 @@ func adjustForHash(key []byte, algorithm crypto.Hash) []byte {
 //
 // Padding symbols '=' are stripped from the end of string
 func EncodeKey(key []byte) string {
-	encoded := base32.HexEncoding.EncodeToString(key)
-	eqIdx := strings.Index(encoded, "=")
-	if eqIdx >= 0 {
-		encoded = encoded[:eqIdx]
-	}
-	return encoded
+	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(key)
 }
 
 // DecodeKey converts a Base32-encoded key to a byte slice
 //
 // key does not have to have proper '=' padding
 func DecodeKey(key string) ([]byte, error) {
-	missingPadding := len(key) % 8
-	if missingPadding != 0 {
-		key = key + strings.Repeat("=", 8-missingPadding)
-	}
-	return base32.HexEncoding.DecodeString(key)
+	return base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(key)
 }
 
 func algorithmFromName(algorithm string) (crypto.Hash, error) {
