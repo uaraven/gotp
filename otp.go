@@ -7,6 +7,8 @@ import (
 	"encoding/base32"
 	"fmt"
 	"net/url"
+
+	"github.com/uaraven/gotp/migration"
 )
 
 var (
@@ -90,15 +92,16 @@ func algorithmToName(algorithm crypto.Hash) (string, error) {
 }
 
 const (
-	typeHotp     = "hotp"
-	typeTotp     = "totp"
-	otpAuthSheme = "otpauth"
-	secretKey    = "secret"
-	issuerKey    = "issuer"
-	digitsKey    = "digits"
-	periodKey    = "period"
-	counterKey   = "counter"
-	algorithmKey = "algorithm"
+	typeHotp        = "hotp"
+	typeTotp        = "totp"
+	otpAuthSheme    = "otpauth"
+	migrationScheme = "otpauth-migration"
+	secretKey       = "secret"
+	issuerKey       = "issuer"
+	digitsKey       = "digits"
+	periodKey       = "period"
+	counterKey      = "counter"
+	algorithmKey    = "algorithm"
 	// DefaultDigits is the default length of the one-time passcode
 	DefaultDigits = 6
 	// SHA1 is the default hash algorithm used with HMAC
@@ -127,14 +130,99 @@ func OTPFromUri(uri string) (*OTPKeyData, error) {
 	if err != nil {
 		return nil, err
 	}
-	if u.Scheme != otpAuthSheme {
+	if u.Scheme == otpAuthSheme {
+		if u.Host == typeTotp {
+			return NewTOTPFromUri(uri)
+		} else if u.Host == typeHotp {
+			return NewHOTPFromUri(uri)
+		} else {
+			return nil, fmt.Errorf("unsupported auth type: %s, expected 'totp' or 'hotp'", u.Host)
+		}
+	} else if u.Scheme == migrationScheme {
+		return otpFromMigrationUri(uri)
+	} else {
+		return nil, fmt.Errorf("unsupported URL scheme: %s, expected 'otpauth' or 'otpauth-migration'", u.Scheme)
+	}
+}
+
+func otpFromMigrationUri(uri string) (*OTPKeyData, error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+	if u.Scheme != migrationScheme {
 		return nil, fmt.Errorf("unsupported URL scheme: %s, expected 'otpauth'", u.Scheme)
 	}
-	if u.Host == typeTotp {
-		return NewTOTPFromUri(uri)
-	} else if u.Host == typeHotp {
-		return NewHOTPFromUri(uri)
-	} else {
-		return nil, fmt.Errorf("unsupported auth type: %s, expected 'totp' or 'hotp'", u.Host)
+	payload, err := migration.UnmarshalURL(uri)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload.OtpParameters) > 0 {
+		params := payload.OtpParameters[0]
+		otp, err := otpFromParameters(params)
+		if err != nil {
+			return nil, err
+		}
+		okd := OTPKeyData{
+			Issuer: params.Issuer,
+			Label:  params.Name,
+			OTP:    otp,
+		}
+		return &okd, nil
+	}
+	return nil, nil
+}
+
+func otpFromParameters(params *migration.Payload_OtpParameters) (OTP, error) {
+	switch params.Type {
+	case migration.Payload_OTP_TYPE_TOTP:
+		return totpFromParameters(params)
+	case migration.Payload_OTP_TYPE_HOTP:
+		return hotpFromParameters(params)
+	default:
+		return nil, fmt.Errorf("unsupported OTP algorithm")
+	}
+}
+
+func totpFromParameters(params *migration.Payload_OtpParameters) (OTP, error) {
+	hash, err := hashFromAlgorithm(params.Algorithm)
+	if err != nil {
+		return nil, err
+	}
+	return NewTOTPHash(
+		params.Secret,
+		int(params.Digits),
+		DefaultTimeStep,
+		0,
+		hash,
+	), nil
+}
+
+func hotpFromParameters(params *migration.Payload_OtpParameters) (OTP, error) {
+	hash, err := hashFromAlgorithm(params.Algorithm)
+	if err != nil {
+		return nil, err
+	}
+	return NewHOTPHash(
+		params.Secret,
+		int64(params.Counter),
+		int(params.Digits),
+		0,
+		hash,
+	), nil
+}
+
+func hashFromAlgorithm(algo migration.Payload_Algorithm) (crypto.Hash, error) {
+	switch algo {
+	case migration.Payload_ALGORITHM_SHA1:
+		return crypto.SHA1, nil
+	case migration.Payload_ALGORITHM_SHA256:
+		return crypto.SHA256, nil
+	case migration.Payload_ALGORITHM_SHA512:
+		return crypto.SHA3_512, nil
+	case migration.Payload_ALGORITHM_UNSPECIFIED:
+		return crypto.SHA1, nil
+	default:
+		return 0, fmt.Errorf("unsupported hash algorithm")
 	}
 }

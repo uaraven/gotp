@@ -99,4 +99,4 @@ Note that some of popular one-time passcode generation applications (like Google
 
 # License
 
-This project is distributed under MIT license.
+This project is distributed under MIT license, except portions that are licensed under ISC license (see [NOTICE.txt](migration/NOTICE.txt)) in /migration folder.

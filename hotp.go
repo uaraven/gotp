@@ -64,7 +64,7 @@ func NewHOTPFromUri(uri string) (*OTPKeyData, error) {
 	}
 	counter := int64(0)
 	if u.Query().Has(counterKey) {
-		counter, err = strconv.ParseInt(u.Query().Get(counterKey), 10, 32)
+		counter, err = strconv.ParseInt(u.Query().Get(counterKey), 10, 64)
 		if err != nil {
 			return nil, err
 		}
