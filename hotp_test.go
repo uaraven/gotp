@@ -104,7 +104,7 @@ func TestHotpUrlGenerator(t *testing.T) {
 }
 
 func TestHotpUrlParser(t *testing.T) {
-	data, err := NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS")
+	data, err := NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS&counter=10")
 	if err != nil {
 		t.Error(err)
 	}
@@ -122,8 +122,8 @@ func TestHotpUrlParser(t *testing.T) {
 	if otp.Digits != 8 {
 		t.Errorf("Error parsing digits from URL")
 	}
-	if otp.counter != 0 {
-		t.Errorf("Error setting default counter")
+	if otp.counter != 10 {
+		t.Errorf("Error setting counter from URL")
 	}
 
 	data, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?issuer=test%40example.com&counter=45&secret=NNSXS")
@@ -149,20 +149,24 @@ func TestHotpUrlParser(t *testing.T) {
 }
 
 func TestHotpUrlParserErrors(t *testing.T) {
-	_, err := NewHOTPFromUri("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS")
+	_, err := NewHOTPFromUri("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS&counter=1")
 	if err == nil {
-		t.Errorf("Expected to faile because of invalid otp type")
+		t.Errorf("Expected to fail because of invalid otp type")
 	}
-	_, err = NewHOTPFromUri("not_otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS")
+	_, err = NewHOTPFromUri("not_otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS&counter=1")
 	if err == nil {
-		t.Errorf("Expected to faile because of invalid URI schema")
+		t.Errorf("Expected to fail because of invalid URI schema")
 	}
-	_, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com")
+	_, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&counter=1")
 	if err == nil {
-		t.Errorf("Expected to faile because of missing secret")
+		t.Errorf("Expected to fail because of missing secret")
 	}
-	_, err = NewTOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS0X")
+	_, err = NewTOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS0X&counter=1")
 	if err == nil {
-		t.Errorf("Expected to faile because of invalid secret")
+		t.Errorf("Expected to fail because of invalid secret")
+	}
+	_, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS")
+	if err == nil {
+		t.Errorf("Expected to fail because of missing counter")
 	}
 }

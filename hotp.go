@@ -53,6 +53,9 @@ func NewHOTPFromUri(uri string) (*OTPKeyData, error) {
 	if !u.Query().Has(secretKey) {
 		return nil, fmt.Errorf("'secret' parameter required")
 	}
+	if !u.Query().Has(counterKey) {
+		return nil, fmt.Errorf("'counter' parameter required")
+	}
 	label := u.Path[1:] // skip '/'
 	issuer := u.Query().Get(issuerKey)
 	digits := int64(DefaultDigits)
