@@ -7,15 +7,18 @@ import (
 	"encoding/base32"
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 var (
 	hashEncoder = map[crypto.Hash]string{
+		crypto.MD5:    "MD5",
 		crypto.SHA1:   "SHA1",
 		crypto.SHA256: "SHA256",
 		crypto.SHA512: "SHA512",
 	}
 	hashDecoder = map[string]crypto.Hash{
+		"MD5":    crypto.MD5,
 		"SHA1":   crypto.SHA1,
 		"SHA256": crypto.SHA256,
 		"SHA512": crypto.SHA512,
@@ -55,6 +58,27 @@ func adjustForHash(key []byte, algorithm crypto.Hash) []byte {
 		key = append(key, make([]byte, hash.BlockSize()-len(key))...)
 	}
 	return key
+}
+
+// getLabelIssuer extracts label and issuer name from the URL
+// label is populated from URL's account name
+// if label contains issuer separated from the account name with ':', then issuer is extracted from the label
+// if URL contains 'issuer' parameter then it overrides any other issuer value set previously
+func getLabelIssuer(u *url.URL) (string, string) {
+	label := u.Path[1:] // skip '/'
+	var labelIssuer string
+	if strings.Contains(label, ":") {
+		lbl := strings.Split(label, ":")
+		labelIssuer = lbl[0]
+		label = lbl[1]
+	}
+	var issuer string
+	if u.Query().Has(issuerKey) {
+		issuer = u.Query().Get(issuerKey)
+	} else {
+		issuer = labelIssuer
+	}
+	return label, issuer
 }
 
 // EncodeKey converts a key to Base32 representation

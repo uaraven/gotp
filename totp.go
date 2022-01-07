@@ -47,8 +47,7 @@ func NewTOTPFromUri(uri string) (*OTPKeyData, error) {
 	if !u.Query().Has(secretKey) {
 		return nil, fmt.Errorf("'secret' parameter required")
 	}
-	label := u.Path[1:] // skip '/'
-	issuer := u.Query().Get(issuerKey)
+	label, issuer := getLabelIssuer(u)
 	digits := int64(DefaultDigits)
 	if u.Query().Has(digitsKey) {
 		digits, err = strconv.ParseInt(u.Query().Get(digitsKey), 10, 32)

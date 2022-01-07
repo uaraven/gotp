@@ -104,13 +104,13 @@ func TestHotpUrlGenerator(t *testing.T) {
 }
 
 func TestHotpUrlParser(t *testing.T) {
-	data, err := NewHOTPFromUri("otpauth://hotp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS&counter=10")
+	data, err := NewHOTPFromUri("otpauth://hotp/test1@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS&counter=10")
 	if err != nil {
 		t.Error(err)
 	}
 	otp := data.OTP.(*HOTP)
 
-	if data.Label != "test@example.com:Example" {
+	if data.Label != "Example" {
 		t.Errorf("Error parsing label from URL")
 	}
 	if data.Issuer != "test@example.com" {

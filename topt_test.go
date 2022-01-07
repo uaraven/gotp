@@ -101,13 +101,13 @@ func TestTotpUrlGenerator(t *testing.T) {
 }
 
 func TestTotpUrlParser(t *testing.T) {
-	data, err := NewTOTPFromUri("otpauth://totp/test@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS")
+	data, err := NewTOTPFromUri("otpauth://totp/test1@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS")
 	if err != nil {
 		t.Error(err)
 	}
 	otp := data.OTP.(*TOTP)
 
-	if data.Label != "test@example.com:Example" {
+	if data.Label != "Example" {
 		t.Errorf("Error parsing label from URL")
 	}
 	if data.Issuer != "test@example.com" {
