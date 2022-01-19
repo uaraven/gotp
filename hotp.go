@@ -246,7 +246,7 @@ func (h *HOTP) Verify(otp string, counter int64) bool {
 func (h *HOTP) ProvisioningUri(accountName string, issuer string) string {
 	vals := make(url.Values)
 	vals.Add(counterKey, fmt.Sprintf("%d", h.counter))
-	algoName, err := algorithmToName(h.Hash)
+	algoName, err := HashAlgorithmName(h.Hash)
 	if err == nil && h.Hash != crypto.SHA1 {
 		vals.Add(algorithmKey, algoName)
 	}

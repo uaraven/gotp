@@ -221,7 +221,7 @@ func (t *TOTP) ProvisioningUri(accountName string, issuer string) string {
 	if t.TimeStep != DefaultTimeStep {
 		vals.Add(periodKey, fmt.Sprintf("%d", t.TimeStep))
 	}
-	algoName, err := algorithmToName(t.Hash)
+	algoName, err := HashAlgorithmName(t.Hash)
 	if t.Hash != crypto.SHA1 && err == nil {
 		vals.Add(algorithmKey, algoName)
 	}

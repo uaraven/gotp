@@ -104,7 +104,7 @@ func algorithmFromName(algorithm string) (crypto.Hash, error) {
 	}
 }
 
-func algorithmToName(algorithm crypto.Hash) (string, error) {
+func HashAlgorithmName(algorithm crypto.Hash) (string, error) {
 	algo, exists := hashEncoder[algorithm]
 	if !exists {
 		return "", fmt.Errorf("algorithm '%d' is not supported", algorithm)
