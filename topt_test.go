@@ -131,7 +131,7 @@ func TestTotpUrlParser(t *testing.T) {
 	if otp.Digits != 6 {
 		t.Errorf("Error setting default digits")
 	}
-	if otp.TimeStep != 45 {
+	if otp.GetTimeStep() != 45 {
 		t.Errorf("Error parsing time step from URL")
 	}
 
@@ -140,7 +140,7 @@ func TestTotpUrlParser(t *testing.T) {
 		t.Error(err)
 	}
 	otp = data.OTP.(*TOTP)
-	if otp.Hash != crypto.SHA256 {
+	if otp.GetHash() != crypto.SHA256 {
 		t.Errorf("Error parsing time step from URL")
 	}
 }
