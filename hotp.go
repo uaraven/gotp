@@ -14,6 +14,8 @@ import (
 	"sync"
 )
 
+const DefaultTransactionOffset = -1
+
 // HOTP is an implementation of RFC4226, HMAC-based one-time password algorithm
 type HOTP struct {
 	OTP
@@ -56,7 +58,7 @@ func NewHOTPFromUri(uri string) (*OTPKeyData, error) {
 	if !u.Query().Has(counterKey) {
 		return nil, fmt.Errorf("'counter' parameter required")
 	}
-	label, issuer := getLabelIssuer(u)
+	accountName, issuer := getAccountIssuer(u)
 	digits := int64(DefaultDigits)
 	if u.Query().Has(digitsKey) {
 		digits, err = strconv.ParseInt(u.Query().Get(digitsKey), 10, 32)
@@ -84,9 +86,9 @@ func NewHOTPFromUri(uri string) (*OTPKeyData, error) {
 	}
 
 	return &OTPKeyData{
-		OTP:    NewHOTPHash(key, counter, int(digits), -1, algorithm),
-		Label:  label,
-		Issuer: issuer}, nil
+		OTP:     NewHOTPHash(key, counter, int(digits), DefaultTransactionOffset, algorithm),
+		Account: accountName,
+		Issuer:  issuer}, nil
 }
 
 // NewDefaultHOTP crates an instance of Hotp with default parameters:
@@ -94,7 +96,7 @@ func NewHOTPFromUri(uri string) (*OTPKeyData, error) {
 //
 // key is the shared secret key
 func NewDefaultHOTP(key []byte, counter int64) *HOTP {
-	return NewHOTP(key, counter, DefaultDigits, -1)
+	return NewHOTP(key, counter, DefaultDigits, DefaultTransactionOffset)
 }
 
 // NewHOTPDigits creates an instance of Hotp with given number of digits for the OTP
@@ -103,7 +105,7 @@ func NewDefaultHOTP(key []byte, counter int64) *HOTP {
 // key is the shared secret key
 // digits is the number of digits in the resulting one-time password code
 func NewHOTPDigits(key []byte, counter int64, digits int) *HOTP {
-	return NewHOTP(key, counter, digits, -1)
+	return NewHOTP(key, counter, digits, DefaultTransactionOffset)
 }
 
 // NewHOTP allows to create an instance of Hotp and set the parameters

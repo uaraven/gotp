@@ -42,10 +42,20 @@ type OTP interface {
 type OTPKeyData struct {
 	// OTP implementation, either *HOTP or *TOTP
 	OTP OTP
-	// Label contains user-visible label for the OTP
-	Label string
+	// Account contains the account Id for the OTP
+	Account string
 	// Issuer contains the name of the issuer of the OTP
 	Issuer string
+}
+
+// GetLabelRepr returns OTP label in human readable format
+// DO NOT use it for constructing otpauth: URIs
+func (okd *OTPKeyData) GetLabelRepr() string {
+	if okd.Issuer != "" {
+		return fmt.Sprintf("%s:%s", okd.Issuer, okd.Account)
+	} else {
+		return okd.Account
+	}
 }
 
 func adjustForHash(key []byte, algorithm crypto.Hash) []byte {
@@ -60,17 +70,18 @@ func adjustForHash(key []byte, algorithm crypto.Hash) []byte {
 	return key
 }
 
-// getLabelIssuer extracts label and issuer name from the URL
-// label is populated from URL's account name
+// getAccountIssuer extracts account name and issuer name from the URL
+// returns (Account Name, Issuer)
+// account name is populated from URL's label
 // if label contains issuer separated from the account name with ':', then issuer is extracted from the label
 // if URL contains 'issuer' parameter then it overrides any other issuer value set previously
-func getLabelIssuer(u *url.URL) (string, string) {
-	label := u.Path[1:] // skip '/'
+func getAccountIssuer(u *url.URL) (string, string) {
+	accountName := u.Path[1:] // skip '/'
 	var labelIssuer string
-	if strings.Contains(label, ":") {
-		lbl := strings.Split(label, ":")
+	if strings.Contains(accountName, ":") {
+		lbl := strings.Split(accountName, ":")
 		labelIssuer = lbl[0]
-		label = lbl[1]
+		accountName = lbl[1]
 	}
 	var issuer string
 	if u.Query().Has(issuerKey) {
@@ -78,7 +89,7 @@ func getLabelIssuer(u *url.URL) (string, string) {
 	} else {
 		issuer = labelIssuer
 	}
-	return label, issuer
+	return accountName, issuer
 }
 
 // EncodeKey converts a key to Base32 representation
@@ -129,17 +140,25 @@ const (
 	SHA1 = "SHA1"
 )
 
-func generateProvisioningUri(otpType string, accountName string, issuer string, digits int, key []byte, extra url.Values) string {
-	extra.Add(secretKey, EncodeKey(key))
-	extra.Add(issuerKey, issuer)
+func generateProvisioningUri(otpType string, accountName string, issuer string, digits int, key []byte, params url.Values) string {
+	params.Add(secretKey, EncodeKey(key))
+	if issuer != "" {
+		params.Add(issuerKey, issuer)
+	}
 	if digits != DefaultDigits {
-		extra.Add(digitsKey, fmt.Sprintf("%d", digits))
+		params.Add(digitsKey, fmt.Sprintf("%d", digits))
+	}
+	var label string
+	if issuer != "" {
+		label = url.PathEscape(issuer) + ":" + url.PathEscape(accountName)
+	} else {
+		label = url.PathEscape(accountName)
 	}
 	u := url.URL{
 		Scheme:   otpAuthSheme,
 		Host:     otpType,
-		Path:     url.PathEscape(issuer) + ":" + url.PathEscape(accountName),
-		RawQuery: extra.Encode(),
+		Path:     label,
+		RawQuery: params.Encode(),
 	}
 	return u.String()
 }
