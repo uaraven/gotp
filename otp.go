@@ -36,6 +36,13 @@ type OTP interface {
 	// accountName identifies an account for which the URI is generated
 	// issuer identifies the entity that performs authentication
 	ProvisioningUri(accountName string, issuer string) string
+
+	// GetHash returns hash algorithm used for HMAC, this is a constant from crypto module.
+	GetHash() crypto.Hash
+	// GetSecret returns shared secret
+	GetSecret() []byte
+	// GetDigits returns the number of digits in the OTP code
+	GetDigits() int
 }
 
 // OTPKeyData contains data parsed from otpauth URL

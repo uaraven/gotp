@@ -134,7 +134,7 @@ func TestHotpUrlParser(t *testing.T) {
 	if otp.Digits != 6 {
 		t.Errorf("Error setting default digits")
 	}
-	if otp.counter != 45 {
+	if otp.GetCounter() != 45 {
 		t.Errorf("Error parsing counter from URL")
 	}
 	if data.Issuer != "Overriden" {
@@ -149,7 +149,7 @@ func TestHotpUrlParser(t *testing.T) {
 	if data.Issuer != "Issuer" {
 		t.Errorf("Error parsing label from URL")
 	}
-	if otp.Hash != crypto.SHA512 {
+	if otp.GetHash() != crypto.SHA512 {
 		t.Errorf("Error parsing time step from URL")
 	}
 }

@@ -231,3 +231,25 @@ func (t *TOTP) ProvisioningUri(accountName string, issuer string) string {
 	}
 	return generateProvisioningUri(typeTotp, accountName, issuer, t.Digits, t.Secret, vals)
 }
+
+func (t *TOTP) GetHash() crypto.Hash {
+	return t.Hash
+}
+
+func (t *TOTP) GetSecret() []byte {
+	return t.Secret
+}
+
+func (t *TOTP) GetDigits() int {
+	return t.Digits
+}
+
+// GetTimeStep returns the time step of the TOTP function
+func (t *TOTP) GetTimeStep() int {
+	return t.TimeStep
+}
+
+// GetStartTime returns a Unix epoch timestamp to be used as a reference point
+func (t *TOTP) GetStartTime() int64 {
+	return t.StartTime
+}

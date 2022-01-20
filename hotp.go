@@ -255,6 +255,18 @@ func (h *HOTP) ProvisioningUri(accountName string, issuer string) string {
 	return generateProvisioningUri(typeHotp, accountName, issuer, h.Digits, h.Secret, vals)
 }
 
+func (h *HOTP) GetHash() crypto.Hash {
+	return h.Hash
+}
+
+func (h *HOTP) GetSecret() []byte {
+	return h.Secret
+}
+
+func (h *HOTP) GetDigits() int {
+	return h.Digits
+}
+
 func (h *HOTP) generateOTPCode(counter int64) string {
 	text := int64toBytes(counter)
 	h.counter = counter + 1
