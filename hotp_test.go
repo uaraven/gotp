@@ -79,41 +79,41 @@ func TestHOTPVerify(t *testing.T) {
 
 func TestHotpUrlGenerator(t *testing.T) {
 	hotp := NewHOTPDigits([]byte("key"), 342, 8)
-	url := hotp.ProvisioningUri("Example", "test@example.com")
+	url := hotp.ProvisioningUri("test@example.com", "Issuer")
 
-	expected := "otpauth://hotp/test@example.com:Example?counter=342&digits=8&issuer=test%40example.com&secret=NNSXS"
+	expected := "otpauth://hotp/Issuer:test@example.com?counter=342&digits=8&issuer=Issuer&secret=NNSXS"
 	if url != expected {
 		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
 	}
 
 	hotp = NewDefaultHOTP([]byte("key"), 2342)
-	url = hotp.ProvisioningUri("Example", "test@example.com")
+	url = hotp.ProvisioningUri("test@example.com", "Issuer")
 
-	expected = "otpauth://hotp/test@example.com:Example?counter=2342&issuer=test%40example.com&secret=NNSXS"
+	expected = "otpauth://hotp/Issuer:test@example.com?counter=2342&issuer=Issuer&secret=NNSXS"
 	if url != expected {
 		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
 	}
 
 	hotp = NewHOTPHash([]byte("key"), 2342, DefaultDigits, -1, crypto.SHA512)
-	url = hotp.ProvisioningUri("Example", "test@example.com")
+	url = hotp.ProvisioningUri("test@example.com", "Issuer")
 
-	expected = "otpauth://hotp/test@example.com:Example?algorithm=SHA512&counter=2342&issuer=test%40example.com&secret=NNSXS"
+	expected = "otpauth://hotp/Issuer:test@example.com?algorithm=SHA512&counter=2342&issuer=Issuer&secret=NNSXS"
 	if url != expected {
 		t.Errorf("Invalid url generated.\nExpected: %s\n  Actual: %s", expected, url)
 	}
 }
 
 func TestHotpUrlParser(t *testing.T) {
-	data, err := NewHOTPFromUri("otpauth://hotp/test1@example.com:Example?digits=8&issuer=test%40example.com&secret=NNSXS&counter=10")
+	data, err := NewHOTPFromUri("otpauth://hotp/test1@example.com?digits=8&issuer=Issuer&secret=NNSXS&counter=10")
 	if err != nil {
 		t.Error(err)
 	}
 	otp := data.OTP.(*HOTP)
 
-	if data.Label != "Example" {
+	if data.Issuer != "Issuer" {
 		t.Errorf("Error parsing label from URL")
 	}
-	if data.Issuer != "test@example.com" {
+	if data.Account != "test1@example.com" {
 		t.Errorf("Error parsing issuer from URL")
 	}
 	if !reflect.DeepEqual(otp.Secret, []byte("key")) {
@@ -126,7 +126,7 @@ func TestHotpUrlParser(t *testing.T) {
 		t.Errorf("Error setting counter from URL")
 	}
 
-	data, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?issuer=test%40example.com&counter=45&secret=NNSXS")
+	data, err = NewHOTPFromUri("otpauth://hotp/Issuer:test@example.com:Example?issuer=Overriden&counter=45&secret=NNSXS")
 	if err != nil {
 		t.Error(err)
 	}
@@ -137,12 +137,18 @@ func TestHotpUrlParser(t *testing.T) {
 	if otp.GetCounter() != 45 {
 		t.Errorf("Error parsing counter from URL")
 	}
+	if data.Issuer != "Overriden" {
+		t.Errorf("Error parsing label from URL")
+	}
 
-	data, err = NewHOTPFromUri("otpauth://hotp/test@example.com:Example?algorithm=SHA512&counter=10&issuer=test%40example.com&secret=NNSXS")
+	data, err = NewHOTPFromUri("otpauth://hotp/Issuer:test@example.com?algorithm=SHA512&counter=10&secret=NNSXS")
 	if err != nil {
 		t.Error(err)
 	}
 	otp = data.OTP.(*HOTP)
+	if data.Issuer != "Issuer" {
+		t.Errorf("Error parsing label from URL")
+	}
 	if otp.GetHash() != crypto.SHA512 {
 		t.Errorf("Error parsing time step from URL")
 	}

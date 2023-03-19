@@ -29,8 +29,12 @@ type TOTP struct {
 	TimeStep int
 }
 
-// DefaultTimeStep is the default time step and is equal to 30 seconds
-const DefaultTimeStep = 30
+const (
+	// DefaultTimeStep is the default time step and is equal to 30 seconds
+	DefaultTimeStep = 30
+	// DefaultStartTime is the default epoch start
+	DefaultStartTime = 0
+)
 
 // NewTOTPFromUri creates an instance of TOTP with the parameters specified in URL
 func NewTOTPFromUri(uri string) (*OTPKeyData, error) {
@@ -47,7 +51,7 @@ func NewTOTPFromUri(uri string) (*OTPKeyData, error) {
 	if !u.Query().Has(secretKey) {
 		return nil, fmt.Errorf("'secret' parameter required")
 	}
-	label, issuer := getLabelIssuer(u)
+	accountName, issuer := getAccountIssuer(u)
 	digits := int64(DefaultDigits)
 	if u.Query().Has(digitsKey) {
 		digits, err = strconv.ParseInt(u.Query().Get(digitsKey), 10, 32)
@@ -75,9 +79,9 @@ func NewTOTPFromUri(uri string) (*OTPKeyData, error) {
 	}
 
 	return &OTPKeyData{
-		OTP:    NewTOTPHash(key, int(digits), int(interval), 0, algorithm),
-		Label:  label,
-		Issuer: issuer}, nil
+		OTP:     NewTOTPHash(key, int(digits), int(interval), DefaultStartTime, algorithm),
+		Account: accountName,
+		Issuer:  issuer}, nil
 }
 
 // NewDefaultTOTP creates an instance of Totp with the provided key and default parameters.
@@ -86,7 +90,7 @@ func NewTOTPFromUri(uri string) (*OTPKeyData, error) {
 //
 // key is the shared secret key
 func NewDefaultTOTP(key []byte) *TOTP {
-	return NewTOTP(key, DefaultDigits, 30, 0)
+	return NewTOTP(key, DefaultDigits, DefaultTimeStep, DefaultStartTime)
 }
 
 // NewTOTPDigits creates an instance of Totp with the provided key and desired number of digits in the resulting code.
@@ -96,7 +100,7 @@ func NewDefaultTOTP(key []byte) *TOTP {
 //
 // digits is the number of digits in the resulting one-time password code
 func NewTOTPDigits(key []byte, digits int) *TOTP {
-	return NewTOTP(key, digits, 30, 0)
+	return NewTOTP(key, digits, DefaultTimeStep, DefaultStartTime)
 }
 
 // NewTOTP creates an instance of Totp with the provided key and TOTP parameter values
