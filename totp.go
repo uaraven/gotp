@@ -82,14 +82,14 @@ func NewTOTPFromUri(uri string) (*OTPKeyData, error) {
 
 // NewDefaultTOTP creates an instance of Totp with the provided key and default parameters.
 //
-// Number of digits is 6, time step is 30 seconds and reference time is equal to Unix Epoch
+// # Number of digits is 6, time step is 30 seconds and reference time is equal to Unix Epoch
 //
 // key is the shared secret key
 func NewDefaultTOTP(key []byte) *TOTP {
 	return NewTOTP(key, DefaultDigits, 30, 0)
 }
 
-// NewDefaultTotp creates an instance of Totp with the provided key and desired number of digits in the resulting code.
+// NewTOTPDigits creates an instance of Totp with the provided key and desired number of digits in the resulting code.
 // Other TOTP parameters will use default values
 //
 // key is the shared secret key
@@ -99,7 +99,7 @@ func NewTOTPDigits(key []byte, digits int) *TOTP {
 	return NewTOTP(key, digits, 30, 0)
 }
 
-// NewDefaultTotp creates an instance of Totp with the provided key and TOTP parameter values
+// NewTOTP creates an instance of Totp with the provided key and TOTP parameter values
 //
 // key is the shared secret key
 //
@@ -112,7 +112,7 @@ func NewTOTP(key []byte, digits int, interval int, startTime int64) *TOTP {
 	return NewTOTPHash(key, digits, interval, startTime, crypto.SHA1)
 }
 
-// NewDefaultTotp creates an instance of Totp with the provided key and TOTP parameter values. This function also allows to configure any hash function to be used in underlying HMAC
+// NewTOTPHash creates an instance of Totp with the provided key and TOTP parameter values. This function also allows to configure any hash function to be used in underlying HMAC
 //
 // key is the shared secret key
 //
@@ -142,7 +142,7 @@ func NewTOTPHash(key []byte, digits int, interval int, startTime int64, hash cry
 // based on the timestamp value
 func (t *TOTP) GenerateOTP(timestamp int64) string {
 	timeSteps := (timestamp - t.StartTime) / int64(t.TimeStep)
-	h := NewHOTPDigits(t.Key, 0, t.Digits)
+	h := NewHOTPHash(t.Key, 0, t.Digits, -1, t.Hash)
 	return h.GenerateOTP(timeSteps)
 }
 
@@ -151,7 +151,7 @@ func (t *TOTP) Now() string {
 	return t.GenerateOTP(time.Now().Unix())
 }
 
-// Now generates an one-time password at the given time
+// At generates an one-time password at the given time
 //
 // moment is a time for which to generate the one-time password
 func (t *TOTP) At(moment time.Time) string {
@@ -187,7 +187,7 @@ func (t *TOTP) VerifyAt(otp string, date time.Time) bool {
 // VerifyWithinWindow checks if provided otp code is valid for the range of the ±validationWindow time-steps windows
 // centered at timestamp
 //
-// This allows validation to pass if client's time is out of sync with server's time and to account for network delays
+// # This allows validation to pass if client's time is out of sync with server's time and to account for network delays
 //
 // It is recommended to keep validationWindow to a minimum to avoid exposing larger window for attack.
 func (t *TOTP) VerifyWithinWindow(otp string, timestamp int64, validationWindow int) bool {
@@ -210,12 +210,12 @@ func (t *TOTP) VerifyAtWithinWindow(otp string, date time.Time, validationWindow
 	return t.VerifyWithinWindow(otp, date.Unix(), validationWindow)
 }
 
-// Generates provisioning URL with the configured parameters as described in https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+// ProvisioningUri Generates provisioning URL with the configured parameters as described in https://github.com/google/google-authenticator/wiki/Key-Uri-Format
 //
 // Limitations:
-//  - startTime cannot be added to provisioning URL
-//  - Only SHA1, SHA256 and SHA512 algorithms could be added to the URI, if TOTP is configured to use any other hashing function, no algorithm will be added to the URI
-//    Note that many OTP generating applications (i.e. Google Authenticator) will ignore algorithm key and always use SHA1
+//   - startTime cannot be added to provisioning URL
+//   - Only SHA1, SHA256 and SHA512 algorithms could be added to the URI, if TOTP is configured to use any other hashing function, no algorithm will be added to the URI
+//     Note that many OTP generating applications (i.e. Google Authenticator) will ignore algorithm key and always use SHA1
 func (t *TOTP) ProvisioningUri(accountName string, issuer string) string {
 	vals := make(url.Values)
 	if t.TimeStep != DefaultTimeStep {

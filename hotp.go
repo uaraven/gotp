@@ -32,7 +32,7 @@ type HOTP struct {
 	TruncationOffset int
 }
 
-func hmac_hash(hashProvider func() hash.Hash, key, data []byte) []byte {
+func hmacHash(hashProvider func() hash.Hash, key, data []byte) []byte {
 	hm := hmac.New(hashProvider, key)
 	hm.Write(data)
 	return hm.Sum([]byte{})
@@ -175,7 +175,7 @@ func (h *HOTP) CurrentOTP() string {
 	return h.GenerateOTP(h.counter)
 }
 
-// Current generates a string containing numeric one-time password code
+// generateNoIncrement generates a string containing numeric one-time password code
 // based on the internal counter value
 //
 // Counter is not changed
@@ -236,13 +236,13 @@ func (h *HOTP) Verify(otp string, counter int64) bool {
 	return subtle.ConstantTimeCompare([]byte(expected), []byte(otp)) == 1
 }
 
-// Generates provisioning URI with the configured parameters as described in https://github.com/google/google-authenticator/wiki/Key-Uri-Format
+// ProvisioningUri generates provisioning URI with the configured parameters as described in https://github.com/google/google-authenticator/wiki/Key-Uri-Format
 //
 // Limitations:
-//  - truncationOffset cannot be added to provisioning URI
-//  - Only SHA1, SHA256 and SHA512 algorithms could be added to the URI, if HOTP is configured to use any other hashing function, no algorithm will be added to the URI
-//    Note that many OTP generating applications (i.e. Google Authenticator) will ignore algorithm key and always use SHA1
-//  - Current counter value will be added to URI, use SetCounter() to update it before generating URI
+//   - truncationOffset cannot be added to provisioning URI
+//   - Only SHA1, SHA256 and SHA512 algorithms could be added to the URI, if HOTP is configured to use any other hashing function, no algorithm will be added to the URI
+//     Note that many OTP generating applications (i.e. Google Authenticator) will ignore algorithm key and always use SHA1
+//   - Current counter value will be added to URI, use SetCounter() to update it before generating URI
 func (h *HOTP) ProvisioningUri(accountName string, issuer string) string {
 	vals := make(url.Values)
 	vals.Add(counterKey, fmt.Sprintf("%d", h.counter))
@@ -268,7 +268,7 @@ func (h *HOTP) GetDigits() int {
 func (h *HOTP) generateOTPCode(counter int64) string {
 	text := int64toBytes(counter)
 	h.counter = counter + 1
-	hash := hmac_hash(h.Hash.New, h.Key, text)
+	hash := hmacHash(h.Hash.New, h.Key, text)
 	var offset int = int(hash[len(hash)-1] & 0xf)
 	if h.TruncationOffset >= 0 && h.TruncationOffset < len(hash)-4 {
 		offset = h.TruncationOffset

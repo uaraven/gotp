@@ -30,13 +30,30 @@ func TestTOTPGenerate(t *testing.T) {
 	}
 }
 
-func TestHOTPGenerateOffset(t *testing.T) {
+func TestTOTPGenerateOffset(t *testing.T) {
 	key := []byte("12345678901234567890")
 	otp := NewTOTP(key, 8, 30, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC).Unix())
 	code := otp.At(time.Date(2000, 1, 1, 0, 0, 59, 0, time.UTC))
 
 	if code != "94287082" {
 		t.Errorf("Expected '94287082', but got %s for time=59, digits=10, T0=0", code)
+	}
+}
+
+func TestTOTPGenerateOffsetSHA256(t *testing.T) {
+	key := []byte("12345678901234567890")
+	otp := NewTOTPHash(key, 8, 30, 0, crypto.SHA256)
+	code := otp.At(time.Unix(59, 0))
+
+	if code != "32247374" {
+		t.Errorf("Expected '32247374', but got %s for time=59, digits=8, T0=0", code)
+	}
+
+	otp = NewTOTPHash(key, 6, 30, 0, crypto.SHA256)
+	code = otp.At(time.Unix(0x0000000003561b67*30, 0))
+
+	if code != "994810" {
+		t.Errorf("Expected '994810', but got %s for time=100, digits=8, T0=0", code)
 	}
 }
 

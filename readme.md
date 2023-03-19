@@ -2,7 +2,7 @@
 
 GoTP library provides implementations of one-time password generators and validators.
 
-This implemantation supports HMAC-based OTP ([RFC 4226](https://datatracker.ietf.org/doc/html/rfc4226)) and Time-based OTP ([RFC 6238](https://www.rfc-editor.org/rfc/rfc6238.html)).
+This implementation supports HMAC-based OTP ([RFC 4226](https://datatracker.ietf.org/doc/html/rfc4226)) and Time-based OTP ([RFC 6238](https://www.rfc-editor.org/rfc/rfc6238.html)).
 
 This library allows generation and validation of one-time passwords as used by variuos services. It is compatible with Google Authenticator and Authy.
 
